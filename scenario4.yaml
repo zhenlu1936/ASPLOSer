@@ -1,0 +1,70 @@
+base: default
+name: Static packaged deployment without feedback loop
+
+# This scenario demonstrates edge_pair_omissions:
+# - 6.Upload is removed, so the application is assumed to be packaged directly
+#   rather than uploaded through AppHub.
+# - R4-R7 feedback responses are removed, so the system runs without the user
+#   feeding responses back to developers or maintainers.
+
+edge_pair_omissions:
+  - name: "6.Upload"
+  - name: "R4.Respond"
+    types: ["Respond"]
+  - name: "R5.Respond"
+    types: ["Respond"]
+  - name: "R6.Respond"
+    types: ["Respond"]
+  - name: "R7.Respond"
+    types: ["Respond"]
+
+node_overrides:
+  - name: User
+    attributes:
+      credibility: Trusted
+  - name: Maintainer
+    attributes:
+      credibility: Trusted
+  - name: DataWorker
+    attributes:
+      credibility: Trusted
+  - name: OperatingEnvironment
+    attributes:
+      credibility: Trusted
+      continuity: MixedContinuity
+
+  - name: AppHub
+    attributes:
+      confidentiality: Confidential
+  - name: ApplicationProgrammed
+    attributes:
+      confidentiality: Confidential
+  - name: Application
+    attributes:
+      confidentiality: Confidential
+
+edge_overrides:
+  - source: Maintainer
+    target: IntelligentSystem
+    name: "9.Assemble"
+    type: Act
+    attributes:
+      continuity: MixedContinuity
+  - source: IntelligentSystem
+    target: OperatingEnvironment
+    name: ComponentOf
+    type: ComponentOf
+    attributes:
+      continuity: MixedContinuity
+  - source: OutputMaterialized
+    target: OperatingEnvironment
+    name: "R2.Respond"
+    type: Respond
+    attributes:
+      continuity: MixedContinuity
+  - source: OperatingEnvironment
+    target: IntelligentSystem
+    name: "R3.Respond"
+    type: Respond
+    attributes:
+      continuity: MixedContinuity

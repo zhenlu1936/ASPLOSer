@@ -1,0 +1,266 @@
+base: default
+name: Adversarial supply chain with untrusted actors and exposure risks
+
+# This scenario demonstrates propagation risks:
+# - Untrusted DataWorker can expose confidential processed data
+# - Discontinuous Maintainer blocks system assembly
+# - Public DependencyHub/Dependency propagate through inference pipeline
+node_overrides:
+  # Core agents: inferred from dependencies
+  - name: PreprocessingModule
+    attributes:
+      credibility: Trusted
+
+  - name: InferenceModule
+    attributes:
+      credibility: Trusted
+
+  - name: PostprocessingModule
+    attributes:
+      credibility: Trusted
+
+  # ADVERSARIAL ACTOR: Untrusted DataWorker can expose processed data
+  - name: DataWorker
+    attributes:
+      credibility: Untrusted
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  # Trusted participants for contrast
+  - name: User
+    attributes:
+      credibility: Trusted
+
+  - name: ModelDeveloper
+    attributes:
+      credibility: Trusted
+
+  - name: AppDeveloper
+    attributes:
+      credibility: Untrusted
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  # TRUST PROBLEM: Maintainer compromised - untrusted with discontinuous operations
+  - name: Maintainer
+    attributes:
+      credibility: Untrusted
+      continuity: Discontinuous
+      correctness: MixedCorrectness
+
+  # EXPOSURE: Public model hub and dependencies propagate through supply chain
+  - name: ModelHub
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  - name: AppHub
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+
+  - name: DependencyHub
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  # Assets ingested from public sources
+  - name: ModelPretrained
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  # Processed data exposed by untrusted DataWorker
+  - name: ProcessedData
+    attributes:
+      confidentiality: Confidential
+      correctness: MixedCorrectness
+      continuity: Continuous
+
+  - name: ApplicationProgrammed
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+
+  - name: Application
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: Continuous
+
+  - name: Dependency
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  # Operating environment with mixed quality
+  - name: OperatingEnvironment
+    attributes:
+      credibility: MixedCredibility
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+# Edge-level exposure: Non-confidential edges on sensitive operations
+edge_overrides:
+  # DataWorker's processing allows observation by untrusted actor
+  - source: RawData
+    target: DataWorker
+    name: "1.Process"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  - source: DataWorker
+    target: ProcessedData
+    name: "1.Process"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  # ModelDeveloper interactions exposed through public hub
+  - source: ProcessedData
+    target: ModelDeveloper
+    name: "2.Train"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  - source: ModelPretrained
+    target: ModelDeveloper
+    name: "2.Train"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  # CONFIDENTIALITY PROPAGATION: Untrusted AppDeveloper with public applications
+  - source: AppDeveloper
+    target: ApplicationProgrammed
+    name: "5.Program"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  - source: ApplicationProgrammed
+    target: AppDeveloper
+    name: "6.Upload"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  # Public upload and download propagate risks
+  - source: ModelHub
+    target: Maintainer
+    name: "4.Download"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  - source: Maintainer
+    target: Model
+    name: "4.Download"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  - source: DependencyHub
+    target: Maintainer
+    name: "8.Download"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  - source: Maintainer
+    target: Dependency
+    name: "8.Download"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  # Assembly blocked by discontinuous Maintainer
+  - source: Model
+    target: Maintainer
+    name: "9.Assemble"
+    attributes:
+      confidentiality: Confidential
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  - source: Application
+    target: Maintainer
+    name: "9.Assemble"
+    attributes:
+      confidentiality: Confidential
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  - source: Dependency
+    target: Maintainer
+    name: "9.Assemble"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  - source: Maintainer
+    target: IntelligentSystem
+    name: "9.Assemble"
+    attributes:
+      confidentiality: Confidential
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  # Inference chain exposed to public dependency
+  - source: InputToken
+    target: InferenceModule
+    name: "12.Inference"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  - source: InferenceModule
+    target: OutputToken
+    name: "12.Inference"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+  # Response edges with mixed quality
+  - source: OutputMaterialized
+    target: User
+    name: "R1.Respond"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  - source: OutputMaterialized
+    target: OperatingEnvironment
+    name: "R2.Respond"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+
+  - source: OperatingEnvironment
+    target: IntelligentSystem
+    name: "R3.Respond"
+    attributes:
+      confidentiality: Public
+      correctness: MixedCorrectness
+      continuity: Discontinuous
