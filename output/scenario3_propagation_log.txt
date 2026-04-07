@@ -2,8 +2,8 @@
 PROPAGATION EVENT LOG
 ================================================================================
 
-Total Execution Events: 32
-Total Propagation Events: 416
+Total Execution Events: 16
+Total Propagation Events: 80
 Stages with Propagation: 4
 Risk Dimensions: Availability, Confidentiality
 
@@ -11,774 +11,361 @@ Risk Dimensions: Availability, Confidentiality
 CYCLE SUMMARY
 --------------------------------------------------------------------------------
 
-Cycle 1: 16 execution events, 208 propagation events
-Cycle 2: 16 execution events, 208 propagation events
+Cycle 1: 16 execution events, 80 propagation events
 
 --------------------------------------------------------------------------------
 RISKS BY DIMENSION
 --------------------------------------------------------------------------------
 
-[Availability] Total events: 352
-  • Operation blocked by discontinuous edge 4.Download (64 occurrences)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    ... and 62 more occurrences
-  • Operation blocked by discontinuous edge 8.Download (64 occurrences)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    ... and 62 more occurrences
-  • Operation blocked by discontinuous edge 9.Assemble (128 occurrences)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    ... and 126 more occurrences
-  • Operation blocked by discontinuous edge R1.Respond (32 occurrences)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    - Cycle 1, Step 2 [Development]: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-    ... and 30 more occurrences
-  • Operation blocked by discontinuous edge R2.Respond (32 occurrences)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    - Cycle 1, Step 2 [Development]: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-    ... and 30 more occurrences
-  • Operation blocked by discontinuous edge R3.Respond (32 occurrences)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    - Cycle 1, Step 2 [Development]: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-    ... and 30 more occurrences
+[Availability] Total events: 64
+  • Operation blocked by discontinuous edge 4.Download (16 occurrences)
+    - Cycle 1, Step 1 [Development]: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    - Cycle 1, Step 2 [Development]: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    ... and 14 more occurrences
+  • Operation blocked by discontinuous edge 8.Download (16 occurrences)
+    - Cycle 1, Step 1 [Development]: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    - Cycle 1, Step 2 [Development]: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    ... and 14 more occurrences
+  • Operation blocked by discontinuous edge 9.Assemble (16 occurrences)
+    - Cycle 1, Step 1 [Development]: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    - Cycle 1, Step 2 [Development]: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    ... and 14 more occurrences
+  • Operation blocked by discontinuous edge R1.Respond (16 occurrences)
+    - Cycle 1, Step 1 [Development]: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    - Cycle 1, Step 2 [Development]: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    ... and 14 more occurrences
 
 --------------------------------------------------------------------------------
 RISKS BY EXECUTION STAGE
 --------------------------------------------------------------------------------
 
-[Confidentiality] Total events: 64
-  • Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed (32 occurrences)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    - Cycle 1, Step 2 [Development]: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-    ... and 30 more occurrences
-  • Potential exposure on edge 8.Download: Maintainer -> Dependency (32 occurrences)
-    - Cycle 1, Step 1 [Development]: ProcessedData = DataWorker.Process(RawData)
-    - Cycle 1, Step 2 [Development]: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-    ... and 30 more occurrences
+[Confidentiality] Total events: 16
+  • Potential exposure on edge 8.Download: Maintainer -> Dependency (16 occurrences)
+    - Cycle 1, Step 1 [Development]: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    - Cycle 1, Step 2 [Development]: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+    ... and 14 more occurrences
 
 --------------------------------------------------------------------------------
 RISKS BY EXECUTION STAGE
 --------------------------------------------------------------------------------
 
 [Development]
-  Availability: 66 risks
-  Confidentiality: 12 risks
+  Availability: 12 risks
+  Confidentiality: 3 risks
 
 [Deployment]
-  Availability: 132 risks
-  Confidentiality: 24 risks
+  Availability: 24 risks
+  Confidentiality: 6 risks
 
 [Inference]
-  Availability: 88 risks
-  Confidentiality: 16 risks
+  Availability: 16 risks
+  Confidentiality: 4 risks
 
 [Response]
-  Availability: 66 risks
-  Confidentiality: 12 risks
+  Availability: 12 risks
+  Confidentiality: 3 risks
 
 --------------------------------------------------------------------------------
 DETAILED EVENT LOG (First 50 events)
 --------------------------------------------------------------------------------
 
 Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge 4.Download
-  Action: ProcessedData = DataWorker.Process(RawData)
-
-Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge 4.Download
-  Action: ProcessedData = DataWorker.Process(RawData)
-
-Cycle  1, Step  1 [Development ] Confidentiality | Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-  Action: ProcessedData = DataWorker.Process(RawData)
-
-Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge 8.Download
-  Action: ProcessedData = DataWorker.Process(RawData)
+  Action: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  1 [Development ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
-  Action: ProcessedData = DataWorker.Process(RawData)
+  Action: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge 8.Download
-  Action: ProcessedData = DataWorker.Process(RawData)
+  Action: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ProcessedData = DataWorker.Process(RawData)
-
-Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ProcessedData = DataWorker.Process(RawData)
-
-Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ProcessedData = DataWorker.Process(RawData)
-
-Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ProcessedData = DataWorker.Process(RawData)
+  Action: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge R1.Respond
-  Action: ProcessedData = DataWorker.Process(RawData)
-
-Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge R2.Respond
-  Action: ProcessedData = DataWorker.Process(RawData)
-
-Cycle  1, Step  1 [Development ] Availability    | Operation blocked by discontinuous edge R3.Respond
-  Action: ProcessedData = DataWorker.Process(RawData)
+  Action: CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge 4.Download
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-
-Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge 4.Download
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-
-Cycle  1, Step  2 [Development ] Confidentiality | Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-
-Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge 8.Download
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
+  Action: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  2 [Development ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
+  Action: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge 8.Download
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
+  Action: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-
-Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-
-Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-
-Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
+  Action: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge R1.Respond
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-
-Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge R2.Respond
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-
-Cycle  1, Step  2 [Development ] Availability    | Operation blocked by discontinuous edge R3.Respond
-  Action: ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
+  Action: CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge 4.Download
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
-
-Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge 4.Download
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
-
-Cycle  1, Step  3 [Development ] Confidentiality | Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
-
-Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge 8.Download
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
+  Action: CPN[3.Upload] ModelHub = ModelDeveloper.Upload(ModelTrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  3 [Development ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
+  Action: CPN[3.Upload] ModelHub = ModelDeveloper.Upload(ModelTrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge 8.Download
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
+  Action: CPN[3.Upload] ModelHub = ModelDeveloper.Upload(ModelTrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
-
-Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
-
-Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
-
-Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
+  Action: CPN[3.Upload] ModelHub = ModelDeveloper.Upload(ModelTrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge R1.Respond
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
-
-Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge R2.Respond
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
-
-Cycle  1, Step  3 [Development ] Availability    | Operation blocked by discontinuous edge R3.Respond
-  Action: ModelHub = ModelDeveloper.Upload(ModelTrained)
+  Action: CPN[3.Upload] ModelHub = ModelDeveloper.Upload(ModelTrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
 
 Cycle  1, Step  4 [Deployment  ] Availability    | Operation blocked by discontinuous edge 4.Download
-  Action: Model = Maintainer.Download(ModelHub)
-
-Cycle  1, Step  4 [Deployment  ] Availability    | Operation blocked by discontinuous edge 4.Download
-  Action: Model = Maintainer.Download(ModelHub)
-
-Cycle  1, Step  4 [Deployment  ] Confidentiality | Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-  Action: Model = Maintainer.Download(ModelHub)
-
-Cycle  1, Step  4 [Deployment  ] Availability    | Operation blocked by discontinuous edge 8.Download
-  Action: Model = Maintainer.Download(ModelHub)
+  Action: CPN[4.Download] Model = Maintainer.Download(ModelHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
 
 Cycle  1, Step  4 [Deployment  ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
-  Action: Model = Maintainer.Download(ModelHub)
+  Action: CPN[4.Download] Model = Maintainer.Download(ModelHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
 
 Cycle  1, Step  4 [Deployment  ] Availability    | Operation blocked by discontinuous edge 8.Download
-  Action: Model = Maintainer.Download(ModelHub)
+  Action: CPN[4.Download] Model = Maintainer.Download(ModelHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
 
 Cycle  1, Step  4 [Deployment  ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: Model = Maintainer.Download(ModelHub)
-
-Cycle  1, Step  4 [Deployment  ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: Model = Maintainer.Download(ModelHub)
-
-Cycle  1, Step  4 [Deployment  ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: Model = Maintainer.Download(ModelHub)
-
-Cycle  1, Step  4 [Deployment  ] Availability    | Operation blocked by discontinuous edge 9.Assemble
-  Action: Model = Maintainer.Download(ModelHub)
+  Action: CPN[4.Download] Model = Maintainer.Download(ModelHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
 
 Cycle  1, Step  4 [Deployment  ] Availability    | Operation blocked by discontinuous edge R1.Respond
-  Action: Model = Maintainer.Download(ModelHub)
+  Action: CPN[4.Download] Model = Maintainer.Download(ModelHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
 
-... and 366 more events (see above for summary)
+Cycle  1, Step  5 [Deployment  ] Availability    | Operation blocked by discontinuous edge 4.Download
+  Action: CPN[5.Program] ApplicationProgrammed = AppDeveloper.Program() => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  5 [Deployment  ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
+  Action: CPN[5.Program] ApplicationProgrammed = AppDeveloper.Program() => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  5 [Deployment  ] Availability    | Operation blocked by discontinuous edge 8.Download
+  Action: CPN[5.Program] ApplicationProgrammed = AppDeveloper.Program() => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  5 [Deployment  ] Availability    | Operation blocked by discontinuous edge 9.Assemble
+  Action: CPN[5.Program] ApplicationProgrammed = AppDeveloper.Program() => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  5 [Deployment  ] Availability    | Operation blocked by discontinuous edge R1.Respond
+  Action: CPN[5.Program] ApplicationProgrammed = AppDeveloper.Program() => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  6 [Deployment  ] Availability    | Operation blocked by discontinuous edge 4.Download
+  Action: CPN[6.Upload] AppHub = AppDeveloper.Upload(ApplicationProgrammed) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  6 [Deployment  ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
+  Action: CPN[6.Upload] AppHub = AppDeveloper.Upload(ApplicationProgrammed) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  6 [Deployment  ] Availability    | Operation blocked by discontinuous edge 8.Download
+  Action: CPN[6.Upload] AppHub = AppDeveloper.Upload(ApplicationProgrammed) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  6 [Deployment  ] Availability    | Operation blocked by discontinuous edge 9.Assemble
+  Action: CPN[6.Upload] AppHub = AppDeveloper.Upload(ApplicationProgrammed) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  6 [Deployment  ] Availability    | Operation blocked by discontinuous edge R1.Respond
+  Action: CPN[6.Upload] AppHub = AppDeveloper.Upload(ApplicationProgrammed) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
+
+Cycle  1, Step  7 [Deployment  ] Availability    | Operation blocked by discontinuous edge 4.Download
+  Action: CPN[7.Download] Application = Maintainer.Download(AppHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  7 [Deployment  ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
+  Action: CPN[7.Download] Application = Maintainer.Download(AppHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  7 [Deployment  ] Availability    | Operation blocked by discontinuous edge 8.Download
+  Action: CPN[7.Download] Application = Maintainer.Download(AppHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  7 [Deployment  ] Availability    | Operation blocked by discontinuous edge 9.Assemble
+  Action: CPN[7.Download] Application = Maintainer.Download(AppHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  7 [Deployment  ] Availability    | Operation blocked by discontinuous edge R1.Respond
+  Action: CPN[7.Download] Application = Maintainer.Download(AppHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  8 [Deployment  ] Availability    | Operation blocked by discontinuous edge 4.Download
+  Action: CPN[8.Download] Dependency = Maintainer.Download(DependencyHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  8 [Deployment  ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
+  Action: CPN[8.Download] Dependency = Maintainer.Download(DependencyHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  8 [Deployment  ] Availability    | Operation blocked by discontinuous edge 8.Download
+  Action: CPN[8.Download] Dependency = Maintainer.Download(DependencyHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  8 [Deployment  ] Availability    | Operation blocked by discontinuous edge 9.Assemble
+  Action: CPN[8.Download] Dependency = Maintainer.Download(DependencyHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  8 [Deployment  ] Availability    | Operation blocked by discontinuous edge R1.Respond
+  Action: CPN[8.Download] Dependency = Maintainer.Download(DependencyHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  9 [Deployment  ] Availability    | Operation blocked by discontinuous edge 4.Download
+  Action: CPN[9.Assemble] IntelligentSystem = Maintainer.Assemble(Model, Application, Dependency) => {conf=N/A,cred=MixedCredibility,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  9 [Deployment  ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
+  Action: CPN[9.Assemble] IntelligentSystem = Maintainer.Assemble(Model, Application, Dependency) => {conf=N/A,cred=MixedCredibility,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  9 [Deployment  ] Availability    | Operation blocked by discontinuous edge 8.Download
+  Action: CPN[9.Assemble] IntelligentSystem = Maintainer.Assemble(Model, Application, Dependency) => {conf=N/A,cred=MixedCredibility,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  9 [Deployment  ] Availability    | Operation blocked by discontinuous edge 9.Assemble
+  Action: CPN[9.Assemble] IntelligentSystem = Maintainer.Assemble(Model, Application, Dependency) => {conf=N/A,cred=MixedCredibility,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step  9 [Deployment  ] Availability    | Operation blocked by discontinuous edge R1.Respond
+  Action: CPN[9.Assemble] IntelligentSystem = Maintainer.Assemble(Model, Application, Dependency) => {conf=N/A,cred=MixedCredibility,corr=MixedCorrectness,cont=Discontinuous}
+
+Cycle  1, Step 10 [Inference   ] Availability    | Operation blocked by discontinuous edge 4.Download
+  Action: CPN[10.Propose] InputQuery = User.Propose() => {conf=MixedConfidentiality,cred=N/A,corr=Correct,cont=Continuous}
+
+Cycle  1, Step 10 [Inference   ] Confidentiality | Potential exposure on edge 8.Download: Maintainer -> Dependency
+  Action: CPN[10.Propose] InputQuery = User.Propose() => {conf=MixedConfidentiality,cred=N/A,corr=Correct,cont=Continuous}
+
+Cycle  1, Step 10 [Inference   ] Availability    | Operation blocked by discontinuous edge 8.Download
+  Action: CPN[10.Propose] InputQuery = User.Propose() => {conf=MixedConfidentiality,cred=N/A,corr=Correct,cont=Continuous}
+
+Cycle  1, Step 10 [Inference   ] Availability    | Operation blocked by discontinuous edge 9.Assemble
+  Action: CPN[10.Propose] InputQuery = User.Propose() => {conf=MixedConfidentiality,cred=N/A,corr=Correct,cont=Continuous}
+
+Cycle  1, Step 10 [Inference   ] Availability    | Operation blocked by discontinuous edge R1.Respond
+  Action: CPN[10.Propose] InputQuery = User.Propose() => {conf=MixedConfidentiality,cred=N/A,corr=Correct,cont=Continuous}
+
+... and 30 more events (see above for summary)
 
 --------------------------------------------------------------------------------
 ALL EXECUTION EVENTS
 --------------------------------------------------------------------------------
 
-Cycle  1, Step  1 [Development ] ProcessedData = DataWorker.Process(RawData)
+Cycle  1, Step  1 [Development ] CPN[1.Process] ProcessedData = DataWorker.Process(RawData) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step  2 [Development ] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
+Cycle  1, Step  2 [Development ] CPN[2.Train] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step  3 [Development ] ModelHub = ModelDeveloper.Upload(ModelTrained)
+Cycle  1, Step  3 [Development ] CPN[3.Upload] ModelHub = ModelDeveloper.Upload(ModelTrained) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step  4 [Deployment  ] Model = Maintainer.Download(ModelHub)
+Cycle  1, Step  4 [Deployment  ] CPN[4.Download] Model = Maintainer.Download(ModelHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step  5 [Deployment  ] ApplicationProgrammed = AppDeveloper.Program()
+Cycle  1, Step  5 [Deployment  ] CPN[5.Program] ApplicationProgrammed = AppDeveloper.Program() => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step  6 [Deployment  ] AppHub = AppDeveloper.Upload(ApplicationProgrammed)
+Cycle  1, Step  6 [Deployment  ] CPN[6.Upload] AppHub = AppDeveloper.Upload(ApplicationProgrammed) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=MixedContinuity}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step  7 [Deployment  ] Application = Maintainer.Download(AppHub)
+Cycle  1, Step  7 [Deployment  ] CPN[7.Download] Application = Maintainer.Download(AppHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step  8 [Deployment  ] Dependency = Maintainer.Download(DependencyHub)
+Cycle  1, Step  8 [Deployment  ] CPN[8.Download] Dependency = Maintainer.Download(DependencyHub) => {conf=NonConfidential,cred=N/A,corr=MixedCorrectness,cont=Discontinuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step  9 [Deployment  ] IntelligentSystem = Maintainer.Assemble(Model, Application, Dependency)
+Cycle  1, Step  9 [Deployment  ] CPN[9.Assemble] IntelligentSystem = Maintainer.Assemble(Model, Application, Dependency) => {conf=N/A,cred=MixedCredibility,corr=MixedCorrectness,cont=Discontinuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step 10 [Inference   ] InputQuery = User.Propose()
+Cycle  1, Step 10 [Inference   ] CPN[10.Propose] InputQuery = User.Propose() => {conf=MixedConfidentiality,cred=N/A,corr=Correct,cont=Continuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step 11 [Inference   ] InputToken = PreprocessingModule.Pre-Process(InputQuery)
+Cycle  1, Step 11 [Inference   ] CPN[11.Pre-Process] InputToken = PreprocessingModule.Pre-Process(InputQuery) => {conf=MixedConfidentiality,cred=N/A,corr=Correct,cont=Continuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step 12 [Inference   ] OutputToken = InferenceModule.Inference(InputToken)
+Cycle  1, Step 12 [Inference   ] CPN[12.Inference] OutputToken = InferenceModule.Inference(InputToken) => {conf=MixedConfidentiality,cred=N/A,corr=Correct,cont=Continuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step 13 [Inference   ] OutputMaterialized = PostprocessingModule.Post-Process(OutputToken)
+Cycle  1, Step 13 [Inference   ] CPN[13.Post-Process] OutputMaterialized = PostprocessingModule.Post-Process(OutputToken) => {conf=MixedConfidentiality,cred=N/A,corr=Correct,cont=Continuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step 14 [Response    ] OutputMaterialized.Respond(User)
+Cycle  1, Step 14 [Response    ] CPN[R1.Respond] OutputMaterialized.Respond(User) => {conf=N/A,cred=MixedCredibility,corr=MixedCorrectness,cont=Discontinuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step 15 [Response    ] OutputMaterialized.Respond(OperatingEnvironment)
+Cycle  1, Step 15 [Response    ] CPN[R2.Respond] OutputMaterialized.Respond(OperatingEnvironment) => {conf=N/A,cred=MixedCredibility,corr=MixedCorrectness,cont=MixedContinuity}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 
-Cycle  1, Step 16 [Response    ] OperatingEnvironment.Respond(IntelligentSystem)
+Cycle  1, Step 16 [Response    ] CPN[R3.Respond] OperatingEnvironment.Respond(IntelligentSystem) => {conf=N/A,cred=MixedCredibility,corr=MixedCorrectness,cont=Discontinuous}
   Violations: none
   Risks:
     - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
     - [Availability] Operation blocked by discontinuous edge 8.Download
     - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
     - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 17 [Development ] ProcessedData = DataWorker.Process(RawData)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 18 [Development ] ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 19 [Development ] ModelHub = ModelDeveloper.Upload(ModelTrained)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 20 [Deployment  ] Model = Maintainer.Download(ModelHub)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 21 [Deployment  ] ApplicationProgrammed = AppDeveloper.Program()
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 22 [Deployment  ] AppHub = AppDeveloper.Upload(ApplicationProgrammed)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 23 [Deployment  ] Application = Maintainer.Download(AppHub)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 24 [Deployment  ] Dependency = Maintainer.Download(DependencyHub)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 25 [Deployment  ] IntelligentSystem = Maintainer.Assemble(Model, Application, Dependency)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 26 [Inference   ] InputQuery = User.Propose()
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 27 [Inference   ] InputToken = PreprocessingModule.Pre-Process(InputQuery)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 28 [Inference   ] OutputToken = InferenceModule.Inference(InputToken)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 29 [Inference   ] OutputMaterialized = PostprocessingModule.Post-Process(OutputToken)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 30 [Response    ] OutputMaterialized.Respond(User)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 31 [Response    ] OutputMaterialized.Respond(OperatingEnvironment)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
-
-Cycle  2, Step 32 [Response    ] OperatingEnvironment.Respond(IntelligentSystem)
-  Violations: none
-  Risks:
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Availability] Operation blocked by discontinuous edge 4.Download
-    - [Confidentiality] Potential exposure on edge 5.Program: AppDeveloper -> ApplicationProgrammed
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Confidentiality] Potential exposure on edge 8.Download: Maintainer -> Dependency
-    - [Availability] Operation blocked by discontinuous edge 8.Download
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge 9.Assemble
-    - [Availability] Operation blocked by discontinuous edge R1.Respond
-    - [Availability] Operation blocked by discontinuous edge R2.Respond
-    - [Availability] Operation blocked by discontinuous edge R3.Respond
 

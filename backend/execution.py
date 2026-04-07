@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Execution state snapshots for Model 2.0 stage-cycle traces."""
+
 from dataclasses import dataclass
 
 

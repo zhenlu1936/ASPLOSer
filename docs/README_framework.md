@@ -1,55 +1,60 @@
-# ASPLOSER Framework
+# ASPLOSER Framework Overview (Model 2.0)
 
-This repository provides a runnable implementation of the ASPLOSER framework based on `asploser.md`.
+ASPLOSER is a runnable framework for analyzing AI system security propagation using a Model 2.0 Colored Petri Net (CPN).
 
-## Included
+## What The Framework Implements
 
-- Formal graph model with subject and object nodes and typed edges
-- Attribute system for confidentiality, correctness, continuity, and credibility
-- Default system instance aligned with the specified entities and edges
-- Structural constraint checks:
+- Node-to-place mapping for subjects and objects
+- Operation-to-transition mapping for lifecycle actions
+- Color sets derived from security attributes:
+  - subject token colors: credibility, correctness, continuity
+  - object token colors: confidentiality, correctness, continuity
+  - edge colors: confidentiality, correctness, continuity
+- Stage-ordered transition firing across:
+  - Development
+  - Deployment
+  - Inference
+  - Response
+  - Feedback (optional)
+- Structural validation:
   - component upper-bound rule
   - dependency upper-bound rule
-- Propagation-risk analysis
-- SSA execution-loop simulation covering development, deployment, inference, response, and feedback stages
-- YAML scenario loading with override-based definitions to avoid duplicating the full graph specification
-- Scenario support for omitting selected operation edge pairs
+  - inferred-attribute constraints for core agents
+- Propagation-risk reporting and cycle-aware event logs
 
-## Files
+## Core Modules
 
-- `backend/model.py`: core schema and enums
-- `backend/instance.py`: default system instance derived from the specification
-- `backend/analysis.py`: objective computation and rule checks
-- `backend/simulator.py`: SSA cycle simulation
-- `backend/scenario_loader.py`: YAML scenario loading, overrides, and edge-pair omission support
+- `backend/model.py`: data model and enums for attributes and graph elements
+- `backend/model.py`: Model 2.0 projection with subjects (round), actions (rectangular), and one-type object arcs
+- `backend/instance.py`: default node/edge/dependency instance and inferred subject attribute setup
+- `backend/simulator.py`: CPN execution engine (`run_cpn_cycles`)
+- `backend/analysis.py`: structural checks, propagation risks, and log generation
+- `backend/scenario_loader.py`: scenario loading and override application
+- `backend/visualization.py`: holistic diagram export
 - `main.py`: CLI entrypoint
 
-## Run
+## CLI Usage
 
 ```bash
-python3 main.py
-python3 main.py --cycles 2
-python3 main.py --cycles 2 --no-feedback
 python3 main.py --list-scenarios
-python3 main.py --scenario scenario1.yaml
-python3 main.py --scenario scenario2.yaml
-python3 main.py --scenario scenario4.yaml
-python3 main.py --scenario scenario3.yaml --export-picture
+python3 main.py --scenario scenario1.yaml --no-feedback --cycles 1
+python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1
+python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1 --export-picture
 ```
 
-## Scenario YAML
+## Scenario Override Schema
 
-Supported scenario keys:
+Supported YAML keys:
 
-- `node_overrides`: replace node attributes by name
-- `edge_default_attributes`: apply a default attribute patch to all edges
-- `edge_pair_omissions`: remove selected operation edge pairs before overrides are applied
-- `edge_overrides`: patch matching edges after omissions
-- `dependency_overrides`: replace dependency sets for inferred subjects
+- `node_overrides`
+- `edge_default_attributes`
+- `edge_pair_omissions`
+- `edge_overrides`
+- `dependency_overrides`
 
-### `edge_pair_omissions`
+`edge_pair_omissions` removes operation edge pairs before edge overrides are applied.
 
-Use this field when a scenario should remove an operation pair without redefining the entire graph.
+Example:
 
 ```yaml
 edge_pair_omissions:
@@ -60,14 +65,20 @@ edge_pair_omissions:
     types: ["Act"]
 ```
 
-Notes:
+Semantics:
 
-- `name` is required.
-- `types` defaults to `["Act", "ActedOnBy"]`.
-- `source` and `target` are optional filters.
-- Omissions are applied before `edge_overrides`.
+- `name` is required
+- `types` defaults to `Act` and `ActedOnBy`
+- `source` and `target` are optional filters
 
-## Notes
+## Output Artifacts
 
-- Objective and propagation calculations are intentionally explicit to keep the framework easy to inspect and extend.
-- Default node and edge attributes can be adjusted in `backend/instance.py` to explore alternative security scenarios.
+- propagation log: `output/<scenario>_propagation_log.txt`
+- diagram markdown: `output/<scenario>_pic.md`
+- diagram image: `output/<scenario>_pic.svg`
+
+## Extension Guidance
+
+- Keep model behavior aligned with `docs/asploser.md`
+- Prefer framework-level refactors over scenario-specific patches
+- Preserve cycle-aware logging and stage ordering when changing execution behavior

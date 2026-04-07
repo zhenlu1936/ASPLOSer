@@ -1,7 +1,8 @@
 base: default
-name: Enterprise cloud multi-tenant pipeline
+name: model2-s2-enterprise-cloud
 
-# This scenario only stores differences from the default framework system.
+# Model 2.0-oriented profile for public/mixed channels.
+
 node_overrides:
   - name: PreprocessingModule
     attributes:
@@ -15,224 +16,41 @@ node_overrides:
   - name: Maintainer
     attributes:
       continuity: MixedContinuity
-  - name: DataWorker
-    attributes:
-      credibility: Trusted
   - name: OperatingEnvironment
     attributes:
       credibility: Trusted
       correctness: MixedCorrectness
       continuity: MixedContinuity
-
   - name: ModelHub
     attributes:
-      confidentiality: Public
+      confidentiality: NonConfidential
       correctness: MixedCorrectness
   - name: AppHub
     attributes:
-      confidentiality: Public
+      confidentiality: NonConfidential
   - name: DependencyHub
     attributes:
-      confidentiality: Public
+      confidentiality: NonConfidential
       correctness: MixedCorrectness
-  - name: ModelPretrained
-    attributes:
-      confidentiality: Public
-      correctness: MixedCorrectness
-  - name: ApplicationProgrammed
-    attributes:
-      confidentiality: Confidential
-  - name: Application
-    attributes:
-      confidentiality: Confidential
-  - name: Dependency
-    attributes:
-      confidentiality: Public
-      correctness: MixedCorrectness
-  - name: InputQuery
-    attributes:
-      continuity: MixedContinuity
-  - name: InputToken
-    attributes:
-      continuity: MixedContinuity
-  - name: OutputToken
-    attributes:
-      confidentiality: Confidential
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - name: OutputMaterialized
-    attributes:
-      confidentiality: Confidential
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
 
 edge_overrides:
-  - source: ModelPretrained
-    target: ModelDeveloper
-    name: 2.Train
-    type: ActedOnBy
-    attributes:
-      confidentiality: Public
-      correctness: MixedCorrectness
-  - source: ModelDeveloper
-    target: ModelHub
-    name: 3.Upload
-    type: Act
-    attributes:
-      confidentiality: Public
   - source: ModelHub
     target: Maintainer
     name: 4.Download
     type: ActedOnBy
     attributes:
-      confidentiality: Public
+      confidentiality: NonConfidential
       correctness: MixedCorrectness
-  - source: Maintainer
-    target: Model
-    name: 4.Download
-    type: Act
-    attributes:
-      continuity: MixedContinuity
-  - source: AppDeveloper
-    target: AppHub
-    name: 6.Upload
-    type: Act
-    attributes:
-      confidentiality: Public
-  - source: AppHub
-    target: Maintainer
-    name: 7.Download
-    type: ActedOnBy
-    attributes:
-      confidentiality: Public
-  - source: Maintainer
-    target: Application
-    name: 7.Download
-    type: Act
-    attributes:
-      continuity: MixedContinuity
   - source: DependencyHub
     target: Maintainer
     name: 8.Download
     type: ActedOnBy
     attributes:
-      confidentiality: Public
+      confidentiality: NonConfidential
       correctness: MixedCorrectness
   - source: Maintainer
-    target: Dependency
-    name: 8.Download
-    type: Act
-    attributes:
-      confidentiality: Public
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - source: Model
-    target: Maintainer
-    name: 9.Assemble
-    type: ActedOnBy
-    attributes:
-      continuity: MixedContinuity
-  - source: Application
-    target: Maintainer
-    name: 9.Assemble
-    type: ActedOnBy
-    attributes:
-      continuity: MixedContinuity
-  - source: Dependency
-    target: Maintainer
-    name: 9.Assemble
-    type: ActedOnBy
-    attributes:
-      confidentiality: Public
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - source: Maintainer
     target: IntelligentSystem
     name: 9.Assemble
     type: Act
-    attributes:
-      continuity: MixedContinuity
-  - source: User
-    target: InputQuery
-    name: 10.Propose
-    type: Act
-    attributes:
-      continuity: MixedContinuity
-  - source: InputQuery
-    target: PreprocessingModule
-    name: 11.Pre-Process
-    type: ActedOnBy
-    attributes:
-      continuity: MixedContinuity
-  - source: PreprocessingModule
-    target: InputToken
-    name: 11.Pre-Process
-    type: Act
-    attributes:
-      continuity: MixedContinuity
-  - source: InputToken
-    target: InferenceModule
-    name: 12.Inference
-    type: ActedOnBy
-    attributes:
-      continuity: MixedContinuity
-  - source: InferenceModule
-    target: OutputToken
-    name: 12.Inference
-    type: Act
-    attributes:
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - source: OutputToken
-    target: PostprocessingModule
-    name: 13.Post-Process
-    type: ActedOnBy
-    attributes:
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - source: PostprocessingModule
-    target: OutputMaterialized
-    name: 13.Post-Process
-    type: Act
-    attributes:
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - source: InferenceModule
-    target: IntelligentSystem
-    name: ComponentOf
-    type: ComponentOf
-    attributes:
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - source: IntelligentSystem
-    target: OperatingEnvironment
-    name: ComponentOf
-    type: ComponentOf
-    attributes:
-      continuity: MixedContinuity
-  - source: OutputMaterialized
-    target: User
-    name: R1.Respond
-    type: Respond
-    attributes:
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - source: OutputMaterialized
-    target: OperatingEnvironment
-    name: R2.Respond
-    type: Respond
-    attributes:
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - source: OperatingEnvironment
-    target: IntelligentSystem
-    name: R3.Respond
-    type: Respond
-    attributes:
-      continuity: MixedContinuity
-  - source: User
-    target: Maintainer
-    name: R7.Respond
-    type: Respond
     attributes:
       continuity: MixedContinuity

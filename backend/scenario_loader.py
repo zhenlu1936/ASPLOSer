@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+"""Scenario override loading with backward-compatible schema for Model 2.0 runs."""
+
 from dataclasses import replace
 from pathlib import Path
 from typing import Any

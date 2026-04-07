@@ -101,15 +101,15 @@
 <rect x="1450.0" y="900.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="1450.0" y1="924.0" x2="1682.0" y2="924.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="1460.0" y="917.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">Application</text>
-<text x="1460.0" y="939.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">confidentiality: NonConfidential</text>
-<text x="1460.0" y="958.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
+<text x="1460.0" y="939.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">confidentiality: MixedConfidentiality</text>
+<text x="1460.0" y="958.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: Correct</text>
 <text x="1460.0" y="977.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="1900.0" y="620.0" width="232" height="88" fill="#f8fbff" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="1900.0" y="620.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="1900.0" y1="644.0" x2="2132.0" y2="644.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="1910.0" y="637.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">ApplicationProgrammed</text>
-<text x="1910.0" y="659.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">confidentiality: NonConfidential</text>
-<text x="1910.0" y="678.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
+<text x="1910.0" y="659.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">confidentiality: MixedConfidentiality</text>
+<text x="1910.0" y="678.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: Correct</text>
 <text x="1910.0" y="697.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="380.0" y="140.0" width="232" height="88" fill="#fcfcfd" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="380.0" y="140.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
@@ -123,8 +123,8 @@
 <line x1="2350.0" y1="924.0" x2="2582.0" y2="924.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="2360.0" y="917.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">Dependency</text>
 <text x="2360.0" y="939.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">confidentiality: NonConfidential</text>
-<text x="2360.0" y="958.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
-<text x="2360.0" y="977.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: MixedContinuity</text>
+<text x="2360.0" y="958.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: Correct</text>
+<text x="2360.0" y="977.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="2350.0" y="760.0" width="232" height="88" fill="#f8fbff" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="2350.0" y="760.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="2350.0" y1="784.0" x2="2582.0" y2="784.0" stroke="#aab2bf" stroke-width="0.8"/>
@@ -136,9 +136,9 @@
 <rect x="1900.0" y="1290.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="1900.0" y1="1314.0" x2="2132.0" y2="1314.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="1910.0" y="1307.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">InferenceModule</text>
-<text x="1910.0" y="1329.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">credibility: Trusted</text>
-<text x="1910.0" y="1348.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
-<text x="1910.0" y="1367.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: MixedContinuity</text>
+<text x="1910.0" y="1329.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">credibility: MixedCredibility</text>
+<text x="1910.0" y="1348.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: Correct</text>
+<text x="1910.0" y="1367.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="840.0" y="1460.0" width="232" height="88" fill="#f8fbff" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="840.0" y="1460.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="840.0" y1="1484.0" x2="1072.0" y2="1484.0" stroke="#aab2bf" stroke-width="0.8"/>
@@ -158,8 +158,8 @@
 <line x1="1900.0" y1="1104.0" x2="2132.0" y2="1104.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="1910.0" y="1097.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">IntelligentSystem</text>
 <text x="1910.0" y="1119.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">credibility: MixedCredibility</text>
-<text x="1910.0" y="1138.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
-<text x="1910.0" y="1157.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: MixedContinuity</text>
+<text x="1910.0" y="1138.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: Correct</text>
+<text x="1910.0" y="1157.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="120.0" y="900.0" width="232" height="88" fill="#f8fbff" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="120.0" y="900.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="120.0" y1="924.0" x2="352.0" y2="924.0" stroke="#aab2bf" stroke-width="0.8"/>
@@ -173,14 +173,14 @@
 <text x="570.0" y="487.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">ModelHub</text>
 <text x="570.0" y="509.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">confidentiality: NonConfidential</text>
 <text x="570.0" y="528.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
-<text x="570.0" y="547.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: MixedContinuity</text>
+<text x="570.0" y="547.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="120.0" y="340.0" width="232" height="88" fill="#f8fbff" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="120.0" y="340.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="120.0" y1="364.0" x2="352.0" y2="364.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="130.0" y="357.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">ModelPretrained</text>
-<text x="130.0" y="379.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">confidentiality: NonConfidential</text>
-<text x="130.0" y="398.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
-<text x="130.0" y="417.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: MixedContinuity</text>
+<text x="130.0" y="379.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">confidentiality: MixedConfidentiality</text>
+<text x="130.0" y="398.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: Correct</text>
+<text x="130.0" y="417.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="120.0" y="470.0" width="232" height="88" fill="#f8fbff" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="120.0" y="470.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="120.0" y1="494.0" x2="352.0" y2="494.0" stroke="#aab2bf" stroke-width="0.8"/>
@@ -206,22 +206,22 @@
 <rect x="2600.0" y="1290.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="2600.0" y1="1314.0" x2="2832.0" y2="1314.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="2610.0" y="1307.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">PostprocessingModule</text>
-<text x="2610.0" y="1329.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">credibility: Trusted</text>
-<text x="2610.0" y="1348.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
-<text x="2610.0" y="1367.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: MixedContinuity</text>
+<text x="2610.0" y="1329.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">credibility: MixedCredibility</text>
+<text x="2610.0" y="1348.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: Correct</text>
+<text x="2610.0" y="1367.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="1200.0" y="1290.0" width="232" height="88" fill="#fcfcfd" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="1200.0" y="1290.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="1200.0" y1="1314.0" x2="1432.0" y2="1314.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="1210.0" y="1307.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">PreprocessingModule</text>
-<text x="1210.0" y="1329.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">credibility: Trusted</text>
-<text x="1210.0" y="1348.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
-<text x="1210.0" y="1367.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: MixedContinuity</text>
+<text x="1210.0" y="1329.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">credibility: MixedCredibility</text>
+<text x="1210.0" y="1348.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: Correct</text>
+<text x="1210.0" y="1367.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="560.0" y="340.0" width="232" height="88" fill="#f8fbff" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="560.0" y="340.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <line x1="560.0" y1="364.0" x2="792.0" y2="364.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="570.0" y="357.0" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#111">ProcessedData</text>
 <text x="570.0" y="379.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">confidentiality: Confidential</text>
-<text x="570.0" y="398.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: MixedCorrectness</text>
+<text x="570.0" y="398.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">correctness: Correct</text>
 <text x="570.0" y="417.0" font-family="Helvetica,Arial,sans-serif" font-size="10.5" font-weight="400" fill="#111">continuity: Continuous</text>
 <rect x="110.0" y="140.0" width="232" height="88" fill="#f8fbff" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
 <rect x="110.0" y="140.0" width="232" height="24" fill="#e9edf3" stroke="#8f99aa" stroke-width="1.1" rx="7"/>
@@ -234,14 +234,14 @@
 <rect x="1470.0" y="140.0" width="232" height="24" fill="#eef2f7" stroke="#8d99a8" stroke-width="1.1" rx="7" stroke-dasharray="5 3"/>
 <line x1="1470.0" y1="164.0" x2="1702.0" y2="164.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="1480.0" y="157.0" font-family="Helvetica,Arial,sans-serif" font-size="11.5" font-weight="700" fill="#1f2937">Users (upper)</text>
-<text x="1480.0" y="179.0" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1f2937">credibility: Trusted</text>
+<text x="1480.0" y="179.0" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1f2937">credibility: MixedCredibility</text>
 <text x="1480.0" y="198.0" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1f2937">correctness: Correct</text>
 <text x="1480.0" y="217.0" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1f2937">continuity: Continuous</text>
 <rect x="760.0" y="1580.0" width="232" height="88" fill="#ffffff" stroke="#8d99a8" stroke-width="1.1" rx="7" stroke-dasharray="5 3"/>
 <rect x="760.0" y="1580.0" width="232" height="24" fill="#eef2f7" stroke="#8d99a8" stroke-width="1.1" rx="7" stroke-dasharray="5 3"/>
 <line x1="760.0" y1="1604.0" x2="992.0" y2="1604.0" stroke="#aab2bf" stroke-width="0.8"/>
 <text x="770.0" y="1597.0" font-family="Helvetica,Arial,sans-serif" font-size="11.5" font-weight="700" fill="#1f2937">Users (lower)</text>
-<text x="770.0" y="1619.0" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1f2937">credibility: Trusted</text>
+<text x="770.0" y="1619.0" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1f2937">credibility: MixedCredibility</text>
 <text x="770.0" y="1638.0" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1f2937">correctness: Correct</text>
 <text x="770.0" y="1657.0" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="400" fill="#1f2937">continuity: Continuous</text>
 <rect x="840.0" y="340.0" width="232" height="88" fill="#ffffff" stroke="#8d99a8" stroke-width="1.1" rx="7" stroke-dasharray="5 3"/>

@@ -8,10 +8,10 @@ Generated image: scenario3_pic.svg
 flowchart LR
   %% Auto-generated holistic model view
   subgraph Agent[Agents]
-    n_InferenceModule["InferenceModule\ncredibility: Trusted\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
-    n_IntelligentSystem["IntelligentSystem\ncredibility: MixedCredibility\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
-    n_PostprocessingModule["PostprocessingModule\ncredibility: Trusted\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
-    n_PreprocessingModule["PreprocessingModule\ncredibility: Trusted\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
+    n_InferenceModule["InferenceModule\ncredibility: MixedCredibility\ncorrectness: Correct\ncontinuity: Continuous"]
+    n_IntelligentSystem["IntelligentSystem\ncredibility: MixedCredibility\ncorrectness: Correct\ncontinuity: Continuous"]
+    n_PostprocessingModule["PostprocessingModule\ncredibility: MixedCredibility\ncorrectness: Correct\ncontinuity: Continuous"]
+    n_PreprocessingModule["PreprocessingModule\ncredibility: MixedCredibility\ncorrectness: Correct\ncontinuity: Continuous"]
   end
   subgraph Participant[Participants]
     n_AppDeveloper["AppDeveloper\ncredibility: Untrusted\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
@@ -19,25 +19,25 @@ flowchart LR
     n_Maintainer["Maintainer\ncredibility: Untrusted\ncorrectness: MixedCorrectness\ncontinuity: Discontinuous"]
     n_ModelDeveloper["ModelDeveloper\ncredibility: Trusted\ncorrectness: Correct\ncontinuity: Continuous"]
     n_OperatingEnvironment["OperatingEnvironment\ncredibility: MixedCredibility\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
-    n_User["User\ncredibility: Trusted\ncorrectness: Correct\ncontinuity: Continuous"]
+    n_User["User\ncredibility: MixedCredibility\ncorrectness: Correct\ncontinuity: Continuous"]
   end
   subgraph Source[Sources]
     n_AppHub["AppHub\nconfidentiality: NonConfidential\ncorrectness: MixedCorrectness\ncontinuity: Continuous"]
     n_DependencyHub["DependencyHub\nconfidentiality: NonConfidential\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
-    n_ModelHub["ModelHub\nconfidentiality: NonConfidential\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
+    n_ModelHub["ModelHub\nconfidentiality: NonConfidential\ncorrectness: MixedCorrectness\ncontinuity: Continuous"]
   end
   subgraph Asset[Assets]
-    n_Application["Application\nconfidentiality: NonConfidential\ncorrectness: MixedCorrectness\ncontinuity: Continuous"]
-    n_ApplicationProgrammed["ApplicationProgrammed\nconfidentiality: NonConfidential\ncorrectness: MixedCorrectness\ncontinuity: Continuous"]
-    n_Dependency["Dependency\nconfidentiality: NonConfidential\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
+    n_Application["Application\nconfidentiality: MixedConfidentiality\ncorrectness: Correct\ncontinuity: Continuous"]
+    n_ApplicationProgrammed["ApplicationProgrammed\nconfidentiality: MixedConfidentiality\ncorrectness: Correct\ncontinuity: Continuous"]
+    n_Dependency["Dependency\nconfidentiality: NonConfidential\ncorrectness: Correct\ncontinuity: Continuous"]
     n_InputQuery["InputQuery\nconfidentiality: Confidential\ncorrectness: Correct\ncontinuity: Continuous"]
     n_InputToken["InputToken\nconfidentiality: Confidential\ncorrectness: Correct\ncontinuity: Continuous"]
     n_Model["Model\nconfidentiality: Confidential\ncorrectness: Correct\ncontinuity: Continuous"]
-    n_ModelPretrained["ModelPretrained\nconfidentiality: NonConfidential\ncorrectness: MixedCorrectness\ncontinuity: MixedContinuity"]
+    n_ModelPretrained["ModelPretrained\nconfidentiality: MixedConfidentiality\ncorrectness: Correct\ncontinuity: Continuous"]
     n_ModelTrained["ModelTrained\nconfidentiality: Confidential\ncorrectness: Correct\ncontinuity: Continuous"]
     n_OutputMaterialized["OutputMaterialized\nconfidentiality: MixedConfidentiality\ncorrectness: Correct\ncontinuity: Continuous"]
     n_OutputToken["OutputToken\nconfidentiality: MixedConfidentiality\ncorrectness: Correct\ncontinuity: Continuous"]
-    n_ProcessedData["ProcessedData\nconfidentiality: Confidential\ncorrectness: MixedCorrectness\ncontinuity: Continuous"]
+    n_ProcessedData["ProcessedData\nconfidentiality: Confidential\ncorrectness: Correct\ncontinuity: Continuous"]
     n_RawData["RawData\nconfidentiality: Confidential\ncorrectness: Correct\ncontinuity: Continuous"]
   end
   n_RawData -.->|1.Process (ActedOnBy)| n_DataWorker

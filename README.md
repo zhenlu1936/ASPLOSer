@@ -1,11 +1,15 @@
 # ASPLOSER Framework
 
-ASPLOSER is a runnable framework for modeling and simulating AI system security propagation risks.
+ASPLOSER is a runnable Model 2.0 framework for analyzing AI system security propagation with subject-action-object-arc semantics.
 
 It includes:
 
-- A formal graph model of subjects and objects with typed relationships
+- A Model 2.0 object-arc Petri net view:
+	- round nodes as subjects
+	- rectangular nodes as actions
+	- arcs as objects (single arc type)
 - Attribute-based security dimensions (confidentiality, correctness, continuity, credibility)
+- Colored execution with level propagation and stage ordering (M/A/P/D/O/F)
 - Structural constraint checks and propagation-risk analysis
 - Scenario-driven simulation via YAML overrides
 - Diagram export and propagation logs under `output/`

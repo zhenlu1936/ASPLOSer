@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Default system instance construction aligned with Model 2.0 docs."""
+
 from dataclasses import replace
 
 from .model import (

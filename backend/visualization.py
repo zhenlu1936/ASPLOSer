@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Visualization export helpers for Model 2.0 system views."""
+
 from html import escape
 from pathlib import Path
 from typing import Dict, List, Tuple

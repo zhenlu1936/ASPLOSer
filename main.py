@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""CLI entrypoint for ASPLOSER Model 2.0 scenarios and simulation."""
+
 import argparse
 from pathlib import Path
 
@@ -11,7 +13,8 @@ from backend import (
     load_scenario_from_file,
     log_propagation_events,
     print_propagation_summary,
-    run_ssa_cycles,
+    project_system_to_model2,
+    run_cpn_cycles,
 )
 
 
@@ -70,6 +73,13 @@ def main() -> None:
     print(f"Scenario: {scenario_name}")
     print(f"Nodes: {len(system.graph.nodes)}")
     print(f"Edges: {len(system.graph.edges)}")
+    model2 = project_system_to_model2(system)
+    print(
+        "Model 2.0 projection: "
+        f"subjects={len(model2.subjects)}, "
+        f"actions={len(model2.actions)}, "
+        f"object_arcs={len(model2.object_arcs)}"
+    )
     print()
 
     if args.export_picture:
@@ -83,9 +93,9 @@ def main() -> None:
         print(f"Holistic model image exported to: {svg_path}")
         print()
 
-    print("=== Dynamic Simulation with Analysis ===")
+    print("=== Model 2.0 Colored Petri Net Simulation with Analysis ===")
     base_violation_strs, base_risk_strs = build_analysis_snapshot(system)
-    states = run_ssa_cycles(
+    states = run_cpn_cycles(
         system,
         development_cycles=max(1, args.cycles),
         feedback=not args.no_feedback,

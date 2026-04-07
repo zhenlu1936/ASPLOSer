@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Unified Model 2.0 data model: core schema and projection helpers."""
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Set
@@ -13,9 +15,10 @@ class Level(Enum):
 
 class _LeveledEnum(Enum):
     """Base class for enums that map to security levels."""
+
     def level(self) -> Level:
         return self._level_map()[self]
-    
+
     @classmethod
     def _level_map(cls):
         raise NotImplementedError
@@ -190,3 +193,141 @@ class SecurityObjectives:
 class System:
     graph: SystemGraph
     dependencies: Dict[str, Set[str]]
+
+
+@dataclass(frozen=True)
+class SubjectNode2:
+    name: str
+    role: str
+    credibility: str
+    correctness: str
+    continuity: str
+
+
+@dataclass(frozen=True)
+class ActionNode2:
+    name: str
+    stage: str
+
+
+@dataclass(frozen=True)
+class ObjectArc2:
+    name: str
+    object_name: str
+    src: str
+    dst: str
+    confidentiality: Confidentiality
+    correctness: Correctness
+    continuity: Continuity
+
+
+@dataclass
+class ObjectArcPetriNet2:
+    subjects: Dict[str, SubjectNode2] = field(default_factory=dict)
+    actions: Dict[str, ActionNode2] = field(default_factory=dict)
+    object_arcs: List[ObjectArc2] = field(default_factory=list)
+
+
+def _classify_stage(action_name: str) -> str:
+    if action_name.startswith("R"):
+        if action_name in {"R1.Respond", "R2.Respond", "R3.Respond"}:
+            return "Response"
+        return "Feedback"
+    try:
+        prefix = int(action_name.split(".")[0])
+    except (ValueError, IndexError):
+        return "Other"
+    if 1 <= prefix <= 3:
+        return "Development"
+    if 4 <= prefix <= 9:
+        return "Deployment"
+    if 10 <= prefix <= 13:
+        return "Inference"
+    return "Other"
+
+
+def project_system_to_model2(system: System) -> ObjectArcPetriNet2:
+    """Project graph into Model 2.0 shape: subjects + actions + object-arcs.
+
+    This projection enforces one arc type (object arc) and a bipartite endpoint rule
+    between subject and action nodes.
+    """
+    graph = system.graph
+    net = ObjectArcPetriNet2()
+
+    for node in graph.nodes.values():
+        if not node.is_subject:
+            continue
+        s = node.as_subject()
+        net.subjects[node.name] = SubjectNode2(
+            name=node.name,
+            role=node.type,
+            credibility=s.credibility.value,
+            correctness=s.correctness.value,
+            continuity=s.continuity.value,
+        )
+
+    for edge in graph.edges:
+        if edge.name == "ComponentOf":
+            continue
+        if edge.name not in net.actions:
+            net.actions[edge.name] = ActionNode2(
+                name=edge.name,
+                stage=_classify_stage(edge.name),
+            )
+
+    for edge in graph.edges:
+        if edge.name == "ComponentOf":
+            continue
+
+        attrs = edge.attributes
+        action_name = edge.name
+
+        if edge.type == EdgeType.ACTED_ON_BY:
+            # object -> subject (input object consumed by action)
+            if edge.target in net.subjects:
+                net.object_arcs.append(
+                    ObjectArc2(
+                        name=f"{action_name}:{edge.source}:in",
+                        object_name=edge.source,
+                        src=edge.target,
+                        dst=action_name,
+                        confidentiality=attrs.confidentiality,
+                        correctness=attrs.correctness,
+                        continuity=attrs.continuity,
+                    )
+                )
+
+        elif edge.type == EdgeType.ACT:
+            # subject -> object (output object produced by action)
+            if edge.source in net.subjects:
+                net.object_arcs.append(
+                    ObjectArc2(
+                        name=f"{action_name}:{edge.target}:out",
+                        object_name=edge.target,
+                        src=action_name,
+                        dst=edge.source,
+                        confidentiality=attrs.confidentiality,
+                        correctness=attrs.correctness,
+                        continuity=attrs.continuity,
+                    )
+                )
+
+        elif edge.type == EdgeType.RESPOND:
+            # response object-flow represented as a single object arc
+            subject_endpoint = edge.target if edge.target in net.subjects else edge.source
+            if subject_endpoint in net.subjects:
+                obj_name = edge.source if edge.source not in net.subjects else edge.target
+                net.object_arcs.append(
+                    ObjectArc2(
+                        name=f"{action_name}:{obj_name}:resp",
+                        object_name=obj_name,
+                        src=action_name,
+                        dst=subject_endpoint,
+                        confidentiality=attrs.confidentiality,
+                        correctness=attrs.correctness,
+                        continuity=attrs.continuity,
+                    )
+                )
+
+    return net

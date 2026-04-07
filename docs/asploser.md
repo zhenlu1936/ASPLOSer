@@ -1,219 +1,314 @@
-# Syntactic Definition
+# ASPLOSER Model 2.0
 
-System ::= (graph: SystemGraph, security: SecurityObjectives)
+This document is the complete specification of the rewritten ASPLOSER model.
 
-### Graph
+Model 2.0 uses a single-arc-type object-arc Petri net:
 
-- SystemGraph ::= {nodes: Set<Node>, edges: Set<Edge>}
+- Round nodes are subjects.
+- Rectangular nodes are actions.
+- Arcs are objects.
+- There is only one arc type.
 
-### Node
+## 1. Formal Definition
 
-- Node ::= SubjectNode | ObjectNode
-- SubjectNode ::= (type: SubjectNodeType, attributes: SubjectNodeAttributes)
-- ObjectNode ::= (type: ObjectNodeType, attributes: ObjectNodeAttributes)
-- SubjectNodeType ::= Agent | Participant
-- ObjectNodeType ::= Asset | Source
+The system is:
 
-### Edge
+$$
+\mathcal{S} = (U, X, E, \Sigma_U, \Sigma_E, M_0, R)
+$$
 
-- Edge ::= (edge: EdgeCore, attributes: EdgeAttributes)
-- EdgeCore ::= (source: Node, target: Node, type: EdgeType, name: EdgeName)
-- EdgeType ::= InteractionEdge | StructureEdge
-- InteractionEdge ::= Act | ActedOnBy | Respond
-- StructureEdge ::= ComponentOf
+where:
 
-### Attribute
+- $U$ is the subject-node set (round nodes).
+- $X$ is the action-node set (rectangular nodes).
+- $E$ is the object-arc set (single arc type only).
+- $\Sigma_U$ is the subject color domain.
+- $\Sigma_E$ is the object-arc color domain.
+- $M_0$ is the initial marking/color assignment.
+- $R$ is the rule set (firing, structural constraints, objective aggregation).
 
-- SubjectNodeAttributes ::= {credibility: Credibility, correctness: Correctness, continuity: Continuity}
-- ObjectNodeAttributes ::= {confidentiality: Confidentiality, correctness: Correctness, continuity: Continuity}
-- EdgeAttributes ::= {confidentiality: Confidentiality, correctness: Correctness, continuity: Continuity}
+### 1.1 Subject Nodes
 
-- Confidentiality ::= Confidential | MixedConfidentiality | NonConfidential
-- Correctness ::= Correct | MixedCorrectness | Incorrect
-- Continuity ::= Continuous | MixedContinuity | Discontinuous
-- Credibility ::= Trusted | MixedCredibility | Untrusted
+Each subject node is:
 
-### Security Objective
+$$
+u = (name, role, credibility, correctness, continuity)$$
 
-- SecurityObjectives ::= {confidentiality: ConfidentialityObjective, integrity: IntegrityObjective, availability: AvailabilityObjective}
+with role in {Agent, Participant}.
 
-- ConfidentialityObjective is jointly determined by Confidentiality and Credibility.
-- IntegrityObjective is jointly determined by Correctness and Credibility.
-- AvailabilityObjective is jointly determined by Continuity and Credibility.
+### 1.2 Action Nodes
 
-### System Instance
+Each action node is:
 
-- Agent ::= IntelligentSystem | PreprocessingModule | InferenceModule | PostprocessingModule
-- Participant ::= User | ModelDeveloper | AppDeveloper | Maintainer | DataWorker | OperatingEnvironment
-- Source ::= ModelHub | AppHub | DependencyHub
-- Asset ::= RawData | ProcessedData | ModelPretrained | ModelTrained | Model | ApplicationProgrammed | Application | Dependency | InputQuery | InputToken | OutputToken | OutputMaterialized
+$$x = (name, stage)$$
 
-edges := {
+with stage in {M, A, P, D, O, F}.
 
-- ((RawData, DataWorker, ActedOnBy, "1.Process"), {...}),
-- ((DataWorker, ProcessedData, Act, "1.Process"), {...}),
-- ((ProcessedData, ModelDeveloper, ActedOnBy, "2.Train"), {...}),
-- ((ModelPretrained, ModelDeveloper, ActedOnBy, "2.Train"), {...}),
-- ((ModelDeveloper, ModelTrained, Act, "2.Train"), {...}),
-- ((ModelTrained, ModelDeveloper, ActedOnBy, "3.Upload"), {...}),
-- ((ModelDeveloper, ModelHub, Act, "3.Upload"), {...}),
-- ((ModelHub, Maintainer, ActedOnBy, "4.Download"), {...}),
-- ((Maintainer, Model, Act, "4.Download"), {...}),
-- ((AppDeveloper, ApplicationProgrammed, Act, "5.Program"), {...}),
-- ((ApplicationProgrammed, AppDeveloper, ActedOnBy, "6.Upload"), {...}),
-- ((AppDeveloper, AppHub, Act, "6.Upload"), {...}),
-- ((AppHub, Maintainer, ActedOnBy, "7.Download"), {...}),
-- ((Maintainer, Application, Act, "7.Download"), {...}),
-- ((DependencyHub, Maintainer, ActedOnBy, "8.Download"), {...}),
-- ((Maintainer, Dependency, Act, "8.Download"), {...}),
-- ((Model, Maintainer, ActedOnBy, "9.Assemble"), {...}),
-- ((Application, Maintainer, ActedOnBy, "9.Assemble"), {...}),
-- ((Dependency, Maintainer, ActedOnBy, "9.Assemble"), {...}),
-- ((Maintainer, IntelligentSystem, Act, "9.Assemble"), {...}),
-- ((User, InputQuery, Act, "10.Propose"), {...}),
-- ((InputQuery, PreprocessingModule, ActedOnBy, "11.Pre-Process"), {...}),
-- ((PreprocessingModule, InputToken, Act, "11.Pre-Process"), {...}),
-- ((InputToken, InferenceModule, ActedOnBy, "12.Inference"), {...}),
-- ((InferenceModule, OutputToken, Act, "12.Inference"), {...}),
-- ((OutputToken, PostprocessingModule, ActedOnBy, "13.Post-Process"), {...}),
-- ((PostprocessingModule, OutputMaterialized, Act, "13.Post-Process"), {...}),
-- ((PreprocessingModule, IntelligentSystem, ComponentOf, "ComponentOf"), {...}),
-- ((InferenceModule, IntelligentSystem, ComponentOf, "ComponentOf"), {...}),
-- ((PostprocessingModule, IntelligentSystem, ComponentOf, "ComponentOf"), {...}),
-- ((IntelligentSystem, OperatingEnvironment, ComponentOf, "ComponentOf"), {...}),
-- ((OutputMaterialized, User, Respond, "R1.Respond"), {...}),
-- ((OutputMaterialized, OperatingEnvironment, Respond, "R2.Respond"), {...}),
-- ((OperatingEnvironment, IntelligentSystem, Respond, "R3.Respond"), {...}),
-- ((User, DataWorker, Respond, "R4.Respond"), {...}),
-- ((User, ModelDeveloper, Respond, "R5.Respond"), {...}),
-- ((User, AppDeveloper, Respond, "R6.Respond"), {...}),
-- ((User, Maintainer, Respond, "R7.Respond"), {...})
+### 1.3 Object Arcs
+
+Each object arc is:
+
+$$e = (object, src, dst, confidentiality, correctness, continuity)$$
+
+Constraints:
+
+- Exactly one arc type exists: object arc.
+- Every arc endpoint pair is bipartite: one endpoint in $U$, the other in $X$.
+- No object nodes are allowed.
+
+## 2. Color Domains
+
+Security levels are ordered:
+
+$$High > Mixed > Low$$
+
+Subject color domain:
+
+$$\Sigma_U = (credibility, correctness, continuity)$$
+
+Object-arc color domain:
+
+$$\Sigma_E = (confidentiality, correctness, continuity)$$
+
+Enumerations:
+
+- Confidentiality: Confidential, MixedConfidentiality, NonConfidential
+- Correctness: Correct, MixedCorrectness, Incorrect
+- Continuity: Continuous, MixedContinuity, Discontinuous
+- Credibility: Trusted, MixedCredibility, Untrusted
+
+## 3. Firing Semantics
+
+For an action firing context with acting subject $u$ and required input arcs $e_1, \dots, e_n$, each produced arc $e_{out}$ is updated by:
+
+$$
+correctness(e_{out}) = \min\{correctness(u), correctness(e_1), \dots, correctness(e_n)\}
+$$
+
+$$
+continuity(e_{out}) = \min\{continuity(u), continuity(e_1), \dots, continuity(e_n)\}
+$$
+
+$$
+confidentiality(e_{out}) = \min\{credibility(u), confidentiality(e_1), \dots, confidentiality(e_n)\}
+$$
+
+## 4. Subprocess Partition
+
+The six subprocesses are:
+
+- M: model subprocess
+- A: application subprocess
+- P: dependency subprocess
+- D: deployment subprocess
+- O: operation subprocess
+- F: feedback subprocess
+
+## 5. Complete Node List
+
+### 5.1 Subject Nodes U (Round)
+
+subjects := {
+
+- IntelligentSystem,
+- PreprocessingModule,
+- InferenceModule,
+- PostprocessingModule,
+- User,
+- ModelDeveloper,
+- AppDeveloper,
+- Maintainer,
+- DataWorker,
+- OperatingEnvironment
 
 }
 
-# Semantic Definition
+### 5.2 Action Nodes X (Rectangular)
 
-### Attribute Semantics
+M := {
 
-Confidentiality: the degree to which information is protected against unauthorized disclosure.
-- For a subject: whether the subject refrains from accessing object information without authorization.
-- For an object: whether the information embodied in the object cannot be accessed without authorization.
-- For an edge: whether the corresponding action cannot be observed, intercepted, or disclosed without authorization.
+- 1.Process,
+- 2.Train,
+- 3.Upload,
+- 4.Download
 
-Correctness: the degree to which behavior conforms to intended functionality and applicable safety requirements.
-- For a subject: whether the subject performs actions correctly and in compliance with safety requirements.
-- For an object: whether the object remains correct and compliant with safety requirements.
-- For an edge: whether the corresponding action is executed correctly and in compliance with safety requirements.
+}
 
-Continuity: the degree to which availability and operability are maintained without interruption.
-- For a subject: whether the subject can continue to perform actions without interruption.
-- For an object: whether the object remains accessible without interruption.
-- For an edge: whether the corresponding action can continue to be performed without interruption.
+A := {
 
-Credibility: the degree to which a subject can be trusted not to misuse accessible resources or undermine system properties.
-- A credible subject does not misuse exposed non-confidential information, exploit correctness violations, or deliberately induce discontinuities.
-- If a subject is untrusted, its correctness and continuity cannot exceed the mixed level, and it may intentionally behave incorrectly or discontinuously whenever doing so serves its interests.
+- 5.Program,
+- 6.Upload,
+- 7.Download
 
-Mixed-level rule:
-- If an attribute is assigned the mixed level, its concrete manifestation is not fixed to either the high or the low level; within a particular interaction, operation, or context, it may exhibit either behavior.
+}
 
-### Propagation Intuition
+P := {
 
-Confidentiality propagation:
-- Exposure propagates across nodes and edges when the relevant subject is untrusted, the relevant object is non-confidential, and the relevant edge is non-confidential.
+- 8.Download
 
-Correctness propagation:
-- Incorrectness propagates across nodes and edges when a relevant node is incorrect and a relevant subject is untrusted.
+}
 
-Continuity propagation:
-- If a required node or edge is discontinuous, the corresponding system operation is blocked.
+D := {
 
-### Structural Constraints
+- 9.Assemble
 
-<!-- a lesson: user should not determine the security levels of the IS, which may be higher than the inferenced ones.-->
+}
 
-Component upper-bound rule:
-- If a subject s1 is a component of a subject s2, then, for every shared security dimension, the attribute level of s2 shall not exceed that of s1.
+O := {
 
-Dependency upper-bound rule:
-- If subject s depends on objects o1, ..., on to perform its intended function, then the relevant attribute levels of s shall not exceed the corresponding attribute levels of o1, ..., on.
+- 10.Propose,
+- 11.Pre-Process,
+- 12.Inference,
+- 13.Post-Process,
+- R1.Respond,
+- R2.Respond,
+- R3.Respond
 
-Inference rule for core agents:
-- The correctness and continuity of IntelligentSystem, PreprocessingModule, InferenceModule, and PostprocessingModule are inferred from their dependency assets rather than assigned directly.
-- IntelligentSystem correctness and continuity are upper-bounded by Model, Application, and Dependency.
-- PreprocessingModule correctness and continuity are upper-bounded by Application and Dependency.
-- InferenceModule correctness and continuity are upper-bounded by Model, Application, and Dependency.
-- PostprocessingModule correctness and continuity are upper-bounded by Application and Dependency.
-- The credibility of these subjects remains explicitly designated by the scenario.
+}
 
-Instance constraints:
-- IntelligentSystem depends on Model, Application, and Dependency.
-- PreprocessingModule depends on Application and Dependency.
-- InferenceModule depends on Model, Application, and Dependency.
-- PostprocessingModule depends on Application and Dependency.
+F := {
 
-### Metrics
+- R4.Respond,
+- R5.Respond,
+- R6.Respond,
+- R7.Respond
 
-Confidentiality:
-- the extent to which an object's information is protected from access by unauthorized subjects
+}
 
-Integrity:
-- the extent to which a subject produces correct objects compliant with safety requirements, and accessed objects remain correct and uncompromised
+actions := M ∪ A ∪ P ∪ D ∪ O ∪ F
 
-Availability:
-- the extent to which authorized subjects retain reliable and uninterrupted access to objects
+## 6. Complete Arc List
 
-# SSA
+Arc format:
 
-```c++
-// SDLC?
+- (object, src, dst)
 
-IntelligentSystem.Components = {
-    PreprocessingModule,
-    InferenceModule,
-    PostprocessingModule
-};
+All arcs below are object arcs (single arc type).
 
-OperatingEnvironment.Components = {
-    IntelligentSystem
-};
+### 6.1 M Arcs
 
-do {
-  // Development Stage
-  // or Initiation - Development - Implementation Stage in SDLC 
-  ProcessedData = DataWorker.Process(RawData);
-  ModelTrained = ModelDeveloper.Train(ProcessedData, ModelPretrained);
-  ApplicationProgrammed = AppDeveloper.Program();
-  // There should be an alpha test or not?
-  ModelHub = ModelDeveloper.Upload(ModelTrained);
-  AppHub = AppDeveloper.Upload(ApplicationProgrammed);
+arcs_M := {
 
-  // Deployment Stage
-  // or Operations Stage in SDLC
-  Model = Maintainer.Download(ModelHub);
-  Application = Maintainer.Download(AppHub);
-  Dependency = Maintainer.Download(DependencyHub);
-  IntelligentSystem = Maintainer.Assemble(Model, Application, Dependency);
+- (RawData, DataWorker, 1.Process),
+- (ProcessedData, 1.Process, ModelDeveloper),
+- (ProcessedData, ModelDeveloper, 2.Train),
+- (ModelPretrained, ModelDeveloper, 2.Train),
+- (ModelTrained, 2.Train, ModelDeveloper),
+- (ModelTrained, ModelDeveloper, 3.Upload),
+- (ModelHub, 3.Upload, Maintainer),
+- (ModelHub, Maintainer, 4.Download),
+- (Model, 4.Download, Maintainer)
 
-  // Inference Stage
-  InputQuery = User.Propose();
-  InputToken = PreprocessingModule.PreProcess(InputQuery);
-  OutputToken = InferenceModule.Inference(InputToken);
-  OutputMaterialized = PostprocessingModule.PostProcess(OutputToken);
+}
 
-  // Response Stage
-  User = OutputMaterialized.Respond(User);
-  OperatingEnvironment = OutputMaterialized.Respond(OperatingEnvironment);
-  
-  // Feedback Stage
-  // or Disposal Stage in SDLC
-  if (Feedback) {
-    DataWorker = User.Respond(DataWorker);
-    ModelDeveloper = User.Respond(ModelDeveloper);
-    AppDeveloper = User.Respond(AppDeveloper);
-    Maintainer = User.Respond(Maintainer);
-  }
-  
-  DevelopmentCycles--;
-} While (DevelopmentCycles);
-```
+### 6.2 A Arcs
+
+arcs_A := {
+
+- (ProgramIntent, AppDeveloper, 5.Program),
+- (ApplicationProgrammed, 5.Program, AppDeveloper),
+- (ApplicationProgrammed, AppDeveloper, 6.Upload),
+- (AppHub, 6.Upload, Maintainer),
+- (AppHub, Maintainer, 7.Download),
+- (Application, 7.Download, Maintainer)
+
+}
+
+### 6.3 P Arcs
+
+arcs_P := {
+
+- (DependencyHub, Maintainer, 8.Download),
+- (Dependency, 8.Download, Maintainer)
+
+}
+
+### 6.4 D Arcs
+
+arcs_D := {
+
+- (Model, Maintainer, 9.Assemble),
+- (Application, Maintainer, 9.Assemble),
+- (Dependency, Maintainer, 9.Assemble),
+- (IntelligentSystem, 9.Assemble, IntelligentSystem)
+
+}
+
+### 6.5 O Arcs
+
+arcs_O := {
+
+- (UserIntent, User, 10.Propose),
+- (InputQuery, 10.Propose, PreprocessingModule),
+- (InputQuery, PreprocessingModule, 11.Pre-Process),
+- (InputToken, 11.Pre-Process, InferenceModule),
+- (InputToken, InferenceModule, 12.Inference),
+- (OutputToken, 12.Inference, PostprocessingModule),
+- (OutputToken, PostprocessingModule, 13.Post-Process),
+- (OutputMaterialized, 13.Post-Process, PostprocessingModule),
+- (OutputMaterialized, PostprocessingModule, R1.Respond),
+- (UserVisibleOutput, R1.Respond, User),
+- (OutputMaterialized, PostprocessingModule, R2.Respond),
+- (EnvVisibleOutput, R2.Respond, OperatingEnvironment),
+- (EnvObservation, OperatingEnvironment, R3.Respond),
+- (SystemFeedback, R3.Respond, IntelligentSystem)
+
+}
+
+### 6.6 F Arcs
+
+arcs_F := {
+
+- (UserFeedbackToDataWorker, User, R4.Respond),
+- (DataWorkerFeedback, R4.Respond, DataWorker),
+- (UserFeedbackToModelDeveloper, User, R5.Respond),
+- (ModelDeveloperFeedback, R5.Respond, ModelDeveloper),
+- (UserFeedbackToAppDeveloper, User, R6.Respond),
+- (AppDeveloperFeedback, R6.Respond, AppDeveloper),
+- (UserFeedbackToMaintainer, User, R7.Respond),
+- (MaintainerFeedback, R7.Respond, Maintainer)
+
+}
+
+Total arc set:
+
+$$E = arcs_M \cup arcs_A \cup arcs_P \cup arcs_D \cup arcs_O \cup arcs_F$$
+
+## 7. Structural Constraints
+
+### 7.1 Dependency Upper Bound
+
+If subject $u$ depends on object-arc set $D(u)$, then:
+
+$$
+correctness(u) \le \min\{correctness(e) \mid e \in D(u)\}
+$$
+
+$$
+continuity(u) \le \min\{continuity(e) \mid e \in D(u)\}
+$$
+
+### 7.2 Core Inference Rules
+
+- IntelligentSystem <= Model, Application, Dependency
+- PreprocessingModule <= Application, Dependency
+- InferenceModule <= Model, Application, Dependency
+- PostprocessingModule <= Application, Dependency
+
+Credibility is scenario-designated.
+
+## 8. Security Objective Aggregation
+
+- Confidentiality objective: minimum confidentiality level across executed object arcs under connected subject credibility.
+- Integrity objective: minimum correctness level across executed object arcs and participating subjects.
+- Availability objective: minimum continuity level across required executed object arcs.
+
+## 9. Normative Modeling Rules
+
+- Use only subject nodes and action nodes.
+- Use only object arcs.
+- Keep all endpoints bipartite between subject and action.
+- Do not add object nodes.
+- Do not add extra arc classes.
+
+This document is the authoritative Model 2.0 rewrite.

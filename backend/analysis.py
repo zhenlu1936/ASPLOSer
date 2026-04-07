@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Structural and propagation analysis for Model 2.0 execution runs."""
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterable, List, TypeVar

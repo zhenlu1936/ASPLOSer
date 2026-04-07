@@ -36,6 +36,8 @@ Load and follow the `agent-customization` skill when creating, updating, reviewi
 ## Project Rules
 
 - Keep framework behavior aligned with `asploser.md` and the scenario docs.
+- Keep all model descriptions aligned with Model 2.0:
+	round nodes = subjects, rectangular nodes = actions, arcs = objects.
 - Prefer framework-level fixes over scenario-specific hacks.
 - Reduce redundancy when touching parsing, routing, rendering, or validation logic.
 - Do not create dedicated test files unless explicitly requested.
