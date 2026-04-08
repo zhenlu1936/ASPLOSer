@@ -1,11 +1,14 @@
 base: default
-name: model2-s1-private-pipeline
+name: model2-s1-regulated-private-assistant
 
-# Model 2.0 rewrite note:
-# - round nodes: subjects
-# - rectangular nodes: actions
-# - arcs: objects (single arc type in conceptual model)
-# Runtime remains backward-compatible with override schema.
+doc_metadata:
+  title: "Scenario 1: Regulated Private Assistant"
+  composition_note: "This scenario represents a regulated enterprise assistant deployed in a private environment with trusted operators and controlled releases."
+  overview: "Scenario 1 models a conservative production baseline where confidentiality and correctness are generally high, while runtime continuity may occasionally degrade due to network and service dependencies."
+
+# Real-world profile:
+# A regulated enterprise assistant running in a private environment.
+# Most operators are trusted, but end-to-end interaction continuity is not perfect.
 
 node_overrides:
   - name: PreprocessingModule
@@ -17,36 +20,33 @@ node_overrides:
   - name: PostprocessingModule
     attributes:
       credibility: Trusted
-  - name: User
+  - name: Users
     attributes:
       credibility: Trusted
-  - name: Maintainer
+  - name: Maintainers
     attributes:
       credibility: Trusted
-  - name: DataWorker
+  - name: DataWorkers
     attributes:
       credibility: Trusted
-  - name: OperatingEnvironment
+  - name: OutsideEnv
     attributes:
       credibility: Trusted
       continuity: MixedContinuity
 
-edge_overrides:
-  - source: Maintainer
-    target: IntelligentSystem
-    name: 9.Assemble
-    type: Act
+initialize_edge_overrides:
+  - source: ModelAppAndDepI
+    target: InferenceModule
+    name: D2.Delopy
     attributes:
       continuity: MixedContinuity
-  - source: User
-    target: InputQuery
-    name: 10.Propose
-    type: Act
+  - source: Users
+    target: InputO
+    name: O1.Input
     attributes:
       continuity: MixedContinuity
-  - source: OutputMaterialized
-    target: User
-    name: R1.Respond
-    type: Respond
+  - source: OutputI
+    target: Users
+    name: O4.Postprocess
     attributes:
       continuity: MixedContinuity

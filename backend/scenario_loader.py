@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-"""Scenario override loading with backward-compatible schema for Model 2.0 runs."""
+"""Scenario override loading for Model 2.0 runs."""
 
 from dataclasses import replace
 from pathlib import Path
@@ -49,59 +49,42 @@ _CONTINUITY_MAP = {
 }
 
 _EDGE_TYPE_MAP = {
-    "Act": EdgeType.ACT,
-    "ActedOnBy": EdgeType.ACTED_ON_BY,
-    "Respond": EdgeType.RESPOND,
-    "ComponentOf": EdgeType.COMPONENT_OF,
+    "ObjectArc": EdgeType.OBJECT_ARC,
+}
+
+_ENUM_MAPPING_BY_CLASS: dict[type, dict[str, Any]] = {
+    Credibility: _CREDIBILITY_MAP,
+    Confidentiality: _CONFIDENTIALITY_MAP,
+    Correctness: _CORRECTNESS_MAP,
+    Continuity: _CONTINUITY_MAP,
+    EdgeType: _EDGE_TYPE_MAP,
 }
 
 
-def _normalize_enum_token(token: str) -> str:
-    token = token.strip()
-    aliases = {
-        "Public": "NonConfidential",
-        "Mixed": "MixedCredibility",
-    }
-    return aliases.get(token, token)
-
-
 def _parse_enum(enum_cls, value: str, enum_mapping: dict[str, Any]) -> Any:
-    """Generic enum parser: normalize token, look up in mapping, raise on mismatch."""
-    normalized = _normalize_enum_token(value)
-    if normalized not in enum_mapping:
+    """Generic enum parser: strict token lookup against canonical values."""
+    token = value.strip()
+    if token not in enum_mapping:
         raise ValueError(f"Invalid {enum_cls.__name__} value: {value}")
-    return enum_mapping[normalized]
+    return enum_mapping[token]
 
 
-def _parse_credibility(value: str) -> Credibility:
-    return _parse_enum(Credibility, value, _CREDIBILITY_MAP)
+def _parse_enum_value(enum_cls: type, value: str) -> Any:
+    enum_mapping = _ENUM_MAPPING_BY_CLASS.get(enum_cls)
+    if enum_mapping is None:
+        raise ValueError(f"Unsupported enum class: {enum_cls}")
+    return _parse_enum(enum_cls, value, enum_mapping)
 
 
-def _parse_confidentiality(value: str) -> Confidentiality:
-    return _parse_enum(Confidentiality, value, _CONFIDENTIALITY_MAP)
-
-
-def _parse_correctness(value: str) -> Correctness:
-    return _parse_enum(Correctness, value, _CORRECTNESS_MAP)
-
-
-def _parse_continuity(value: str) -> Continuity:
-    return _parse_enum(Continuity, value, _CONTINUITY_MAP)
-
-
-def _parse_edge_type(value: str) -> EdgeType:
-    return _parse_enum(EdgeType, value, _EDGE_TYPE_MAP)
-
-
-def _resolve_attr(updates: dict[str, Any], key: str, current_value: str, parser) -> Any:
-    return parser(updates.get(key, current_value))
+def _resolve_attr(updates: dict[str, Any], key: str, current_value: str, enum_cls: type) -> Any:
+    return _parse_enum_value(enum_cls, updates.get(key, current_value))
 
 
 def _merge_edge_attributes(current: EdgeAttributes, updates: dict[str, Any]) -> EdgeAttributes:
     return EdgeAttributes(
-        confidentiality=_resolve_attr(updates, "confidentiality", current.confidentiality.value, _parse_confidentiality),
-        correctness=_resolve_attr(updates, "correctness", current.correctness.value, _parse_correctness),
-        continuity=_resolve_attr(updates, "continuity", current.continuity.value, _parse_continuity),
+        confidentiality=_resolve_attr(updates, "confidentiality", current.confidentiality.value, Confidentiality),
+        correctness=_resolve_attr(updates, "correctness", current.correctness.value, Correctness),
+        continuity=_resolve_attr(updates, "continuity", current.continuity.value, Continuity),
     )
 
 
@@ -110,17 +93,17 @@ def _update_node_attributes(node: Node, attrs: dict[str, Any]) -> Node:
     if node.is_subject:
         current = node.as_subject()
         updated = SubjectNodeAttributes(
-            credibility=_resolve_attr(attrs, "credibility", current.credibility.value, _parse_credibility),
-            correctness=_resolve_attr(attrs, "correctness", current.correctness.value, _parse_correctness),
-            continuity=_resolve_attr(attrs, "continuity", current.continuity.value, _parse_continuity),
+            credibility=_resolve_attr(attrs, "credibility", current.credibility.value, Credibility),
+            correctness=_resolve_attr(attrs, "correctness", current.correctness.value, Correctness),
+            continuity=_resolve_attr(attrs, "continuity", current.continuity.value, Continuity),
         )
         return replace(node, subject_attributes=updated)
     else:
         current = node.as_object()
         updated = ObjectNodeAttributes(
-            confidentiality=_resolve_attr(attrs, "confidentiality", current.confidentiality.value, _parse_confidentiality),
-            correctness=_resolve_attr(attrs, "correctness", current.correctness.value, _parse_correctness),
-            continuity=_resolve_attr(attrs, "continuity", current.continuity.value, _parse_continuity),
+            confidentiality=_resolve_attr(attrs, "confidentiality", current.confidentiality.value, Confidentiality),
+            correctness=_resolve_attr(attrs, "correctness", current.correctness.value, Correctness),
+            continuity=_resolve_attr(attrs, "continuity", current.continuity.value, Continuity),
         )
         return replace(node, object_attributes=updated)
 
@@ -129,10 +112,10 @@ def remove_edge_pairs(system: System, removals: list[dict[str, Any]]) -> System:
     """Remove matching operation edge pairs from the system graph.
 
     Each removal entry supports:
-    - name: required edge operation name, such as "6.Upload" or "9.Assemble"
+    - name: required edge operation name, such as "A2.Upload" or "D2.Delopy"
     - source: optional exact source-node filter
     - target: optional exact target-node filter
-    - types: optional list of edge types to remove, defaults to ["Act", "ActedOnBy"]
+    - types: optional list of edge types to remove, defaults to ["ObjectArc"]
     """
     if not removals:
         return system
@@ -145,15 +128,15 @@ def remove_edge_pairs(system: System, removals: list[dict[str, Any]]) -> System:
 
         source = removal.get("source")
         target = removal.get("target")
-        raw_types = removal.get("types", ["Act", "ActedOnBy"])
+        raw_types = removal.get("types", ["ObjectArc"])
         if not isinstance(raw_types, list) or not raw_types:
             raise ValueError(f"edge_pair_omissions.types must be a non-empty list for name={name}")
-        parsed_types = {_parse_edge_type(raw_type) for raw_type in raw_types}
+        parsed_types = {_parse_enum_value(EdgeType, raw_type) for raw_type in raw_types}
 
         matched = False
         remaining = []
         for edge in filtered_edges:
-            is_match = edge.name == name and edge.type in parsed_types
+            is_match = edge.action == name and edge.type in parsed_types
             if is_match and source is not None:
                 is_match = edge.source == source
             if is_match and target is not None:
@@ -178,19 +161,21 @@ def remove_edge_pairs(system: System, removals: list[dict[str, Any]]) -> System:
 def _apply_yaml_overrides(system: System, payload: dict[str, Any]) -> System:
     graph = system.graph
 
+    if "edge_default_attributes" in payload or "edge_overrides" in payload:
+        raise ValueError(
+            "Legacy edge override keys are not supported. "
+            "Use initialize_edge_default_attributes and initialize_edge_overrides."
+        )
+
     for node_patch in payload.get("node_overrides", []):
         name = node_patch.get("name")
         if not name or name not in graph.nodes:
             raise ValueError(f"node_overrides entry references unknown node: {name}")
-        if name == "IntelligentSystem":
-            raise ValueError(
-                "IntelligentSystem attributes are fully inferred from dependencies and cannot be overridden"
-            )
         node = graph.nodes[name]
         attrs = node_patch.get("attributes", {})
         graph.nodes[name] = _update_node_attributes(node, attrs)
 
-    edge_default_attrs_raw = payload.get("edge_default_attributes")
+    edge_default_attrs_raw = payload.get("initialize_edge_default_attributes")
     if edge_default_attrs_raw:
         default_attrs = _merge_edge_attributes(system.graph.edges[0].attributes, edge_default_attrs_raw)
         graph.edges = [replace(edge, attributes=default_attrs) for edge in graph.edges]
@@ -198,12 +183,12 @@ def _apply_yaml_overrides(system: System, payload: dict[str, Any]) -> System:
     edge_pair_omissions = payload.get("edge_pair_omissions", [])
     remove_edge_pairs(system, edge_pair_omissions)
 
-    for edge_patch in payload.get("edge_overrides", []):
+    for edge_patch in payload.get("initialize_edge_overrides", []):
         source = edge_patch.get("source")
         target = edge_patch.get("target")
         name = edge_patch.get("name")
         edge_type = edge_patch.get("type")
-        parsed_edge_type = _parse_edge_type(edge_type) if edge_type is not None else None
+        parsed_edge_type = _parse_enum_value(EdgeType, edge_type) if edge_type is not None else None
         updates = edge_patch.get("attributes", {})
 
         matched = False
@@ -212,7 +197,7 @@ def _apply_yaml_overrides(system: System, payload: dict[str, Any]) -> System:
                 continue
             if target is not None and edge.target != target:
                 continue
-            if name is not None and edge.name != name:
+            if name is not None and edge.action != name:
                 continue
             if parsed_edge_type is not None and edge.type != parsed_edge_type:
                 continue
@@ -221,7 +206,7 @@ def _apply_yaml_overrides(system: System, payload: dict[str, Any]) -> System:
 
         if not matched:
             raise ValueError(
-                "edge_overrides entry did not match any edge: "
+                "initialize_edge_overrides entry did not match any edge: "
                 f"source={source}, target={target}, name={name}, type={edge_type}"
             )
 

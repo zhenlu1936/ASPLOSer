@@ -1,80 +1,81 @@
 base: default
-name: model2-s3-adversarial-propagation
+name: model2-s3-compromised-release-incident
 
-# Model 2.0 adversarial profile. Keeps compatibility schema while encoding
-# one-arc-type conceptual behavior via edge attributes.
+doc_metadata:
+  title: "Scenario 3: Compromised Release Incident"
+  composition_note: "This scenario models a supply-chain compromise where untrusted contributors and tainted artifacts propagate risks across deployment and runtime."
+  overview: "Scenario 3 emphasizes cascading confidentiality and availability risk propagation under degraded trust and discontinuous release operations."
+
+# Real-world profile:
+# Supply-chain compromise where untrusted contributors and tainted artifacts
+# propagate confidentiality and availability risks through deployment/runtime.
 
 node_overrides:
-  - name: DataWorker
+  - name: DataWorkers
     attributes:
       credibility: Untrusted
       correctness: MixedCorrectness
       continuity: MixedContinuity
-  - name: AppDeveloper
+  - name: AppDevelopers
     attributes:
       credibility: Untrusted
       correctness: MixedCorrectness
       continuity: MixedContinuity
-  - name: Maintainer
+  - name: Maintainers
     attributes:
       credibility: Untrusted
       correctness: MixedCorrectness
       continuity: Discontinuous
-  - name: OperatingEnvironment
+  - name: OutsideEnv
     attributes:
       credibility: MixedCredibility
       correctness: MixedCorrectness
       continuity: MixedContinuity
-  - name: ModelHub
+  - name: ModelUploadedO
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
-  - name: AppHub
+  - name: AppUploadedO
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
-  - name: DependencyHub
+  - name: DependenciesUploadedO
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
       continuity: MixedContinuity
 
-edge_overrides:
-  - source: DataWorker
-    target: ProcessedData
-    name: 1.Process
-    type: Act
+initialize_edge_overrides:
+  - source: DataWorkers
+    target: UnstructuredDataO
+    name: M2.Process
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
       continuity: MixedContinuity
-  - source: ModelHub
-    target: Maintainer
-    name: 4.Download
-    type: ActedOnBy
+  - source: ModelDownloadedI
+    target: Maintainers
+    name: M6.Download
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
       continuity: Discontinuous
-  - source: Maintainer
-    target: Dependency
-    name: 8.Download
-    type: Act
+  - source: DependenciesDownloadedI
+    target: Maintainers
+    name: P2.Download
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
       continuity: Discontinuous
-  - source: Maintainer
-    target: IntelligentSystem
-    name: 9.Assemble
-    type: Act
+  - source: ModelAppAndDepI
+    target: InferenceModule
+    name: D2.Delopy
     attributes:
       correctness: MixedCorrectness
       continuity: Discontinuous
-  - source: OutputMaterialized
-    target: User
-    name: R1.Respond
-    type: Respond
+  - source: OutputI
+    target: Users
+    name: O4.Postprocess
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness

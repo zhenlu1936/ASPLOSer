@@ -24,8 +24,7 @@ ASPLOSER is a runnable framework for analyzing AI system security propagation us
 
 ## Core Modules
 
-- `backend/model.py`: data model and enums for attributes and graph elements
-- `backend/model.py`: Model 2.0 projection with subjects (round), actions (rectangular), and one-type object arcs
+- `backend/model.py`: unified Model 2.0 data model (core enums/schema plus subject/action/object-arc projection)
 - `backend/instance.py`: default node/edge/dependency instance and inferred subject attribute setup
 - `backend/simulator.py`: CPN execution engine (`run_cpn_cycles`)
 - `backend/analysis.py`: structural checks, propagation risks, and log generation
@@ -47,21 +46,21 @@ python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1 --export-pict
 Supported YAML keys:
 
 - `node_overrides`
-- `edge_default_attributes`
+- `initialize_edge_default_attributes`
 - `edge_pair_omissions`
-- `edge_overrides`
+- `initialize_edge_overrides`
 - `dependency_overrides`
 
-`edge_pair_omissions` removes operation edge pairs before edge overrides are applied.
+`edge_pair_omissions` removes operation edge pairs before initialize-phase edge overrides are applied.
 
 Example:
 
 ```yaml
 edge_pair_omissions:
-  - name: "6.Upload"
-  - name: "9.Assemble"
-    source: Maintainer
-    target: IntelligentSystem
+  - name: "A2.Upload"
+  - name: "D2.Delopy"
+    source: Maintainers
+    target: InferenceModule
     types: ["Act"]
 ```
 
@@ -70,6 +69,11 @@ Semantics:
 - `name` is required
 - `types` defaults to `Act` and `ActedOnBy`
 - `source` and `target` are optional filters
+
+Initialize rule:
+
+- Static edge attributes are assigned only in the initialize phase (before cycle execution).
+- After initialization, edge attributes evolve through action firing semantics in the simulator.
 
 ## Output Artifacts
 
@@ -82,3 +86,9 @@ Semantics:
 - Keep model behavior aligned with `docs/asploser.md`
 - Prefer framework-level refactors over scenario-specific patches
 - Preserve cycle-aware logging and stage ordering when changing execution behavior
+
+## Picture Alignment Note
+
+- Treat `docs/asploser.md` as the normative source for runtime naming and semantics.
+- Treat `docs/model2.0.drawio` and `docs/model2.0.svg` as visualization artifacts that may use different display labels.
+- Do not hardcode policy rules to specific picture-only action IDs.

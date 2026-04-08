@@ -44,16 +44,17 @@ def build_holistic_picture_mermaid(system: System) -> str:
     graph = system.graph
 
     groups: Dict[str, List[str]] = {
-        "Agent": [],
-        "Participant": [],
-        "Asset": [],
-        "Source": [],
-        "Other": [],
+        "Subject": [],
+        "Action": [],
+        "Object": [],
     }
 
     for node in sorted(graph.nodes.values(), key=lambda n: n.name):
-        bucket = node.type if node.type in groups else "Other"
+        bucket = "Subject" if node.is_subject else "Object"
         groups[bucket].append(node.name)
+
+    for action in sorted(graph.actions.values(), key=lambda a: a.name):
+        groups["Action"].append(action.name)
 
     lines: List[str] = [
         "flowchart LR",
@@ -61,37 +62,35 @@ def build_holistic_picture_mermaid(system: System) -> str:
     ]
 
     group_titles = {
-        "Agent": "Agents",
-        "Participant": "Participants",
-        "Asset": "Assets",
-        "Source": "Sources",
-        "Other": "Other",
+        "Subject": "Subjects",
+        "Action": "Actions",
+        "Object": "Objects",
     }
 
-    for key in ["Agent", "Participant", "Source", "Asset", "Other"]:
+    for key in ["Subject", "Action", "Object"]:
         names = groups[key]
         if not names:
             continue
         lines.append(f"  subgraph {key}[{group_titles[key]}]")
         for name in names:
-            node = graph.nodes[name]
-            label = _subject_label(node) if node.is_subject else _object_label(node)
-            lines.append(f"    {_node_id(name)}[\"{label}\"]")
+            if key == "Action":
+                action = graph.actions[name]
+                label = f"{action.name}\\nstage: {action.stage}"
+                lines.append(f"    {_node_id(name)}[\"{label}\"]")
+            else:
+                node = graph.nodes[name]
+                label = _subject_label(node) if node.is_subject else _object_label(node)
+                lines.append(f"    {_node_id(name)}[\"{label}\"]")
         lines.append("  end")
 
     for edge in graph.edges:
+        action = _node_id(edge.action)
         src = _node_id(edge.source)
         tgt = _node_id(edge.target)
-        if edge.type == EdgeType.ACT:
-            connector = "-->"
-        elif edge.type == EdgeType.ACTED_ON_BY:
-            connector = "-.->"
-        elif edge.type == EdgeType.RESPOND:
-            connector = "==>"
-        else:
-            connector = "--"
-        label = f"{edge.name} ({edge.type.value})"
-        lines.append(f"  {src} {connector}|{label}| {tgt}")
+        in_label = f"{edge.name} ({edge.type.value})"
+        out_label = f"{edge.name}"
+        lines.append(f"  {src} -->|{in_label}| {action}")
+        lines.append(f"  {action} -->|{out_label}| {tgt}")
 
     return "\n".join(lines)
 
@@ -108,29 +107,30 @@ def _derive_output_paths(scenario_name: str, output_file: str | None) -> Tuple[P
 
 def _grouped_node_names(system: System) -> Dict[str, List[str]]:
     groups: Dict[str, List[str]] = {
-        "Agent": [],
-        "Participant": [],
-        "Asset": [],
-        "Source": [],
-        "Other": [],
+        "Subject": [],
+        "Object": [],
     }
     for node in sorted(system.graph.nodes.values(), key=lambda n: n.name):
-        groups[node.type if node.type in groups else "Other"].append(node.name)
+        groups["Subject" if node.is_subject else "Object"].append(node.name)
     return groups
 
 
 def _node_svg_label_lines(node) -> List[str]:
+    return _build_node_label_lines(node, node.name)
+
+
+def _build_node_label_lines(node, header_name: str) -> List[str]:
     if node.is_subject:
         s = node.as_subject()
         return [
-            node.name,
+            header_name,
             f"credibility: {s.credibility.value}",
             f"correctness: {s.correctness.value}",
             f"continuity: {s.continuity.value}",
         ]
     o = node.as_object()
     return [
-        node.name,
+        header_name,
         f"confidentiality: {o.confidentiality.value}",
         f"correctness: {o.correctness.value}",
         f"continuity: {o.continuity.value}",
@@ -138,21 +138,7 @@ def _node_svg_label_lines(node) -> List[str]:
 
 
 def _role_alias_label_lines(node, alias_name: str) -> List[str]:
-    if node.is_subject:
-        s = node.as_subject()
-        return [
-            alias_name,
-            f"credibility: {s.credibility.value}",
-            f"correctness: {s.correctness.value}",
-            f"continuity: {s.continuity.value}",
-        ]
-    o = node.as_object()
-    return [
-        alias_name,
-        f"confidentiality: {o.confidentiality.value}",
-        f"correctness: {o.correctness.value}",
-        f"continuity: {o.continuity.value}",
-    ]
+    return _build_node_label_lines(node, alias_name)
 
 
 def _draw_card(
@@ -189,33 +175,29 @@ def _draw_card(
 
 def _build_alias_endpoint_map() -> Dict[str, Dict[str, str]]:
     return {
-        "User": {
-            "R4.Respond": "Users (upper)",
-            "R5.Respond": "Users (upper)",
-            "R6.Respond": "Users (upper)",
-            "R7.Respond": "Users (upper)",
-            "10.Propose": "Users (lower)",
-            "R1.Respond": "Users (lower)",
+        "Users": {
+            "F1.Feedback": "Users (upper)",
+            "O1.Input": "Users (lower)",
+            "O4.Postprocess": "Users (lower)",
         },
-        "ModelDeveloper": {
-            "2.Train": "Model Developers (train)",
-            "3.Upload": "Model Developers (upload)",
+        "ModelDevelopers": {
+            "M4.Train": "Model Developers (train)",
+            "M5.Upload": "Model Developers (upload)",
         },
-        "AppDeveloper": {
-            "5.Program": "App Developers (program)",
-            "6.Upload": "App Developers (upload)",
+        "AppDevelopers": {
+            "A1.Program": "App Developers (program)",
+            "A2.Upload": "App Developers (upload)",
         },
-        "Maintainer": {
-            "4.Download": "Maintainers (download)",
-            "7.Download": "Maintainers (download)",
-            "8.Download": "Maintainers (download)",
-            "9.Assemble": "Maintainers (assemble)",
-            "R7.Respond": "Maintainers (assemble)",
+        "Maintainers": {
+            "M6.Download": "Maintainers (download)",
+            "A3.Download": "Maintainers (download)",
+            "P2.Download": "Maintainers (download)",
+            "D2.Delopy": "Maintainers (assemble)",
+            "F1.Feedback": "Maintainers (assemble)",
         },
-        "OperatingEnvironment": {
-            "R2.Respond": "Operating Env (response)",
-            "R3.Respond": "Operating Env (response)",
-            "ComponentOf": "Operating Env (response)",
+        "OutsideEnv": {
+            "O4.Postprocess": "Operating Env (response)",
+            "O1.Input": "Operating Env (response)",
         },
     }
 
@@ -224,29 +206,10 @@ def _select_visual_edges(system: System, positions: Dict[str, Tuple[float, float
     """Select a less cluttered edge set for visualization.
 
     Strategy:
-    - Keep all non-ACTED_ON_BY edges.
-    - For ACTED_ON_BY with multiple inputs to the same operation target,
-      keep only one representative edge to reduce twists.
+    - Keep all object arcs to preserve complete Petri-style connectivity.
     """
-    selected = []
-    acted_best: Dict[Tuple[str, str], object] = {}
-    acted_score: Dict[Tuple[str, str], float] = {}
-
-    for edge in system.graph.edges:
-        if edge.type != EdgeType.ACTED_ON_BY:
-            selected.append(edge)
-            continue
-
-        key = (edge.name, edge.target)
-        sx, sy = positions[edge.source]
-        tx, ty = positions[edge.target]
-        score = abs(tx - sx) + abs(ty - sy)
-        if key not in acted_score or score < acted_score[key]:
-            acted_score[key] = score
-            acted_best[key] = edge
-
-    selected.extend(acted_best.values())
-    return selected
+    del positions
+    return list(system.graph.edges)
 
 
 def _build_holistic_picture_svg(system: System) -> str:
@@ -274,27 +237,26 @@ def _build_holistic_picture_svg(system: System) -> str:
     # Hand-tuned anchor map to make node layering similar to the reference image.
     preferred_positions: Dict[str, Tuple[float, float]] = {
         "RawData": (110, 140),
-        "DataWorker": (380, 140),
-        "User": (1500, 140),
+        "DataWorkers": (380, 140),
+        "Users": (1500, 140),
 
         "ModelPretrained": (120, 340),
         "ProcessedData": (560, 340),
-        "ModelDeveloper": (1010, 340),
+        "ModelDevelopers": (1010, 340),
         "ModelTrained": (120, 470),
         "ModelHub": (560, 470),
 
-        "AppDeveloper": (1450, 620),
+        "AppDevelopers": (1450, 620),
         "ApplicationProgrammed": (1900, 620),
         "AppHub": (1450, 760),
         "DependencyHub": (2350, 760),
 
-        "Maintainer": (1900, 900),
+        "Maintainers": (1900, 900),
         "Model": (120, 900),
         "Application": (1450, 900),
         "Dependency": (2350, 900),
 
-        "IntelligentSystem": (1900, 1080),
-        "OperatingEnvironment": (2820, 1080),
+        "OutsideEnv": (2820, 1080),
 
         "PreprocessingModule": (1200, 1290),
         "InferenceModule": (1900, 1290),
@@ -308,15 +270,15 @@ def _build_holistic_picture_svg(system: System) -> str:
 
     # Duplicated role cards for readability across layers (visual aliases).
     role_aliases: List[Tuple[str, str, float, float]] = [
-        ("Users (upper)", "User", 1470, 140),
-        ("Users (lower)", "User", 760, 1580),
-        ("Model Developers (train)", "ModelDeveloper", 840, 340),
-        ("Model Developers (upload)", "ModelDeveloper", 840, 470),
-        ("App Developers (program)", "AppDeveloper", 1490, 620),
-        ("App Developers (upload)", "AppDeveloper", 1490, 760),
-        ("Maintainers (download)", "Maintainer", 2620, 820),
-        ("Maintainers (assemble)", "Maintainer", 2140, 1080),
-        ("Operating Env (response)", "OperatingEnvironment", 3180, 1080),
+        ("Users (upper)", "Users", 1470, 140),
+        ("Users (lower)", "Users", 760, 1580),
+        ("Model Developers (train)", "ModelDevelopers", 840, 340),
+        ("Model Developers (upload)", "ModelDevelopers", 840, 470),
+        ("App Developers (program)", "AppDevelopers", 1490, 620),
+        ("App Developers (upload)", "AppDevelopers", 1490, 760),
+        ("Maintainers (download)", "Maintainers", 2620, 820),
+        ("Maintainers (assemble)", "Maintainers", 2140, 1080),
+        ("Operating Env (response)", "OutsideEnv", 3180, 1080),
     ]
     alias_positions = {alias_name: (ax, ay) for alias_name, _, ax, ay in role_aliases}
     alias_endpoint_map = _build_alias_endpoint_map()
@@ -367,7 +329,7 @@ def _build_holistic_picture_svg(system: System) -> str:
     def _resolve_endpoint(edge, is_source: bool) -> Tuple[float, float]:
         node_name = edge.source if is_source else edge.target
 
-        alias_name = alias_endpoint_map.get(node_name, {}).get(edge.name)
+        alias_name = alias_endpoint_map.get(node_name, {}).get(edge.action)
         if alias_name is not None:
             return alias_positions[alias_name]
 
@@ -384,16 +346,6 @@ def _build_holistic_picture_svg(system: System) -> str:
         dash = ""
         stroke = "#4c9dff"
         stroke_width = 2.05
-        if edge.type == EdgeType.ACTED_ON_BY:
-            dash = ' stroke-dasharray="7 4"'
-            stroke = "#8c93a1"
-        elif edge.type == EdgeType.RESPOND:
-            stroke = "#f0c24f"
-            stroke_width = 2.45
-        elif edge.type == EdgeType.COMPONENT_OF:
-            dash = ' stroke-dasharray="2 3"'
-            stroke = "#71c08a"
-
         bend = abs(x2 - x1) * 0.34
         cx1 = x1 + bend if x2 >= x1 else x1 - bend
         cx2 = x2 - bend if x2 >= x1 else x2 + bend
@@ -412,11 +364,11 @@ def _build_holistic_picture_svg(system: System) -> str:
     # Intentionally omit alias-link lines to reduce visual twisting.
 
     hidden_base_nodes = {
-        "User",
-        "ModelDeveloper",
-        "AppDeveloper",
-        "Maintainer",
-        "OperatingEnvironment",
+        "Users",
+        "ModelDevelopers",
+        "AppDevelopers",
+        "Maintainers",
+        "OutsideEnv",
     }
 
     for name, (x, y) in positions.items():
@@ -434,7 +386,7 @@ def _build_holistic_picture_svg(system: System) -> str:
         _draw_card(parts, x, y, box_w, box_h, "#eef2f7", "#ffffff", "#8d99a8", _role_alias_label_lines(base_node, alias_name), dashed=True)
 
     # Group hints
-    group_names = ["Participant", "Source", "Agent", "Asset", "Other"]
+    group_names = ["Subject", "Object"]
     gy = 74
     gx = 980
     for idx, group in enumerate(group_names):
@@ -445,7 +397,7 @@ def _build_holistic_picture_svg(system: System) -> str:
             f'<rect x="{x}" y="{gy - 12}" width="14" height="14" fill="#ffffff" stroke="#98a1ae" stroke-width="1" rx="2"/>'
         )
         parts.append(
-            f'<text x="{x + 20}" y="{gy}" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#475467">{escape(group)} node</text>'
+            f'<text x="{x + 20}" y="{gy}" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#475467">{escape(group)} nodes</text>'
         )
 
     # Legend
@@ -458,10 +410,7 @@ def _build_holistic_picture_svg(system: System) -> str:
         f'<text x="{lx + 12}" y="{ly + 20}" font-family="Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#243447">Edge Legend</text>'
     )
     legend_items = [
-        ("Act", "#2f6fb5", ""),
-        ("ActedOnBy", "#6b7280", ' stroke-dasharray="7 4"'),
-        ("Respond", "#c58a00", ""),
-        ("ComponentOf", "#3f8a5e", ' stroke-dasharray="2 3"'),
+        ("ObjectArc", "#2f6fb5", ""),
     ]
     for idx, (name, color, dash) in enumerate(legend_items):
         y = ly + 40 + idx * 10

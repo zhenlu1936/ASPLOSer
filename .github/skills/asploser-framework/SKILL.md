@@ -7,55 +7,46 @@ description: "Use when modifying the ASPLOSER framework, adding or refining scen
 
 ## Purpose
 
-Use this skill for framework code changes, scenario updates, propagation/logging behavior, diagram export behavior, and framework documentation maintenance.
+Use this skill for ASPLOSER Model 2.0 framework code, scenarios, propagation behavior, visualization export, and framework docs.
 
 ## Project Context
 
 - Entrypoint: `python3 main.py`
 - Core package: `backend/`
-- Primary specification: `asploser.md`
+- Primary specification: `docs/asploser.md`
 - Scenario files: `scenario*.yaml`
 - Scenario docs: `docs/scenario*.md`
 - Generated artifacts: `output/`
 
 ## Core Rules
 
-### 1. Keep docs and behavior aligned
-
-- Treat `asploser.md` as the semantic/spec reference.
-- Do not leave silent mismatch between code and documentation.
-- Scenario docs must match current runtime behavior and output paths.
-
-### 2. Reduce redundancy
-
-- Prefer small reusable helpers over repeated inline logic.
-- Consolidate duplicated parsing, rendering, routing, and formatting paths.
-- Remove dead code after refactors.
-
-### 3. Reduce coupling
-
-- Depend on stable shared contracts, not peer module internals.
-- Prefer one-way dependencies between modules and avoid circular imports.
-- If two modules share the same data shape, define it once in a neutral module.
-- Keep public APIs stable while reorganizing internals.
-
-### 4. Testing policy
-
-- Use lightweight smoke tests through the CLI or inline Python commands.
-- Do not create dedicated test files unless explicitly requested.
-
-### 5. Output location policy
-
-- Keep generated artifacts under `output/`.
-- Log path: `output/<scenario>_propagation_log.txt`
-- Diagram markdown: `output/<scenario>_pic.md`
-- Diagram image: `output/<scenario>_pic.svg`
-
-### 6. Simulation and log readability
-
-- Execution steps are 1-based (`Step 1`, not `Step 0`).
-- Propagation logs must include all execution events.
-- Multi-cycle logs must include cycle context (`Cycle N`) on event lines and per-cycle summaries.
+1. `docs/asploser.md` is authoritative. Code, docs, and outputs must match it.
+2. Enforce Model 2.0 semantics:
+  - round nodes are subjects
+  - rectangular nodes are actions
+  - arcs are objects (single arc type)
+  - no object nodes and no extra arc classes
+  - static object-arc attribute assignment is initialize-only; post-initialize updates follow firing semantics
+3. Prefer framework-level fixes. Remove duplication and dead code.
+4. Keep dependencies clean: shared contracts, no circular imports.
+5. No dedicated test files unless explicitly requested. Use CLI smoke tests.
+6. Keep generated artifacts only in `output/`:
+  - `output/<scenario>_propagation_log.txt`
+  - `output/<scenario>_pic.md`
+  - `output/<scenario>_pic.svg`
+7. Log quality is mandatory:
+  - 1-based step labels
+  - full execution events
+  - cycle-aware event lines and per-cycle summaries
+8. No legacy compatibility:
+  - no alias keys, fallback parsing, or deprecated shims
+  - remove replaced schema/API forms in the same change
+  - fail fast on legacy inputs with clear errors
+9. Naming must be concise and final:
+  - no temporary/migration names (`new_*`, `old_*`, `tmp*`, `legacy_*`, `draft`, `final_final`)
+  - no history-encoded names
+  - use no-space identifiers for model names (`DataWorkers`, `O1.Input`, `PreprocessingModule`)
+  - complete renames in one change
 
 ## Scenario Conventions
 
@@ -70,10 +61,15 @@ base: default
 Supported keys:
 
 - `node_overrides`
-- `edge_default_attributes`
+- `initialize_edge_default_attributes`
 - `edge_pair_omissions`
-- `edge_overrides`
+- `initialize_edge_overrides`
 - `dependency_overrides`
+
+Schema policy:
+
+- Keys and field names must be concise and legacy-free.
+- Do not add compatibility aliases for old scenario keys.
 
 ### Edge-pair omissions
 
@@ -83,22 +79,22 @@ Example:
 
 ```yaml
 edge_pair_omissions:
-  - name: "6.Upload"
-  - name: "9.Assemble"
-    source: Maintainer
-    target: IntelligentSystem
+  - name: "A2.Upload"
+  - name: "D2.Delopy"
+    source: Maintainers
+    target: InferenceModule
     types: ["Act"]
 ```
 
 Interpretation:
 
 - `name` is required
-- `types` defaults to `Act` + `ActedOnBy`
-- omissions are applied before `edge_overrides`
+- `types` is optional and only filters omission matches in the runtime implementation
+- omissions are applied before `initialize_edge_overrides`
 
 ### Inference rule
 
-The following subjects infer correctness and continuity from dependencies:
+These subjects infer correctness and continuity from dependencies:
 
 - `IntelligentSystem <= Model + Application + Dependency`
 - `PreprocessingModule <= Application + Dependency`
@@ -109,7 +105,7 @@ Credibility remains scenario-designated.
 
 ### Scenario doc format
 
-All scenario docs (`docs/scenario*.md`) should use the same section schema and order:
+All scenario docs (`docs/scenario*.md`) must use this order:
 
 1. `## Composition Note`
 2. `## Overview`
@@ -117,7 +113,7 @@ All scenario docs (`docs/scenario*.md`) should use the same section schema and o
 4. `### Edge`
 5. `## Usage`
 
-In `Node` and `Edge` blocks, every non-high security value should be bold:
+In `Node` and `Edge`, every non-high security value must be bold:
 
 - Non-high credibility examples: `Untrusted`, `MixedCredibility`, `Mixed`
 - Non-high correctness examples: `Incorrect`, `MixedCorrectness`
@@ -126,18 +122,14 @@ In `Node` and `Edge` blocks, every non-high security value should be bold:
 
 ## Visualization Conventions
 
-- Keep the exported picture easy to understand, not merely complete.
-- Prefer layered structure similar to `model4.0.png`.
-- Use duplicated role cards when that improves readability.
-- Reduce twisted edges by pruning non-essential visual connectors.
-- Preserve semantic intent such as:
-  - upper Users card for `R4` to `R7`
-  - lower Users card for `10.Propose` and `R1.Respond`
-- The picture generator may simplify visualization edges, but must not alter the underlying system model.
+- Prioritize readability over raw completeness.
+- Keep semantic behavior unchanged when simplifying visual edges.
+- Treat the current model picture labels and structure as authoritative for visual naming and layout intent.
+- Do not hardcode visualization guidance to legacy or outdated action IDs.
 
 ## Validation Checklist
 
-After framework changes, run this compact smoke suite:
+After framework changes, run this smoke suite:
 
 1. Scenario discovery
 
@@ -157,20 +149,26 @@ python3 main.py --scenario scenario1.yaml --no-feedback --cycles 1
 python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1
 ```
 
-4. Diagram export
+4. Initialize non-fully-trusted arcs scenario
+
+```bash
+python3 main.py --scenario scenario5.yaml --no-feedback --cycles 1
+```
+
+5. Diagram export
 
 ```bash
 python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1 --export-picture
 ```
 
-5. Multi-cycle check
+6. Multi-cycle check
 
 ```bash
 python3 main.py --scenario scenario1.yaml --no-feedback --cycles 3
 python3 main.py --scenario scenario3.yaml --no-feedback --cycles 2
 ```
 
-6. Cycle-aware log sanity check
+7. Cycle-aware log sanity check
 
 ```bash
 grep '^Cycle' output/scenario1_propagation_log.txt | head -5

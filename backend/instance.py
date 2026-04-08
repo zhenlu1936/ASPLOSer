@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from .model import (
+    ActionNode,
     Confidentiality,
     Continuity,
     Correctness,
@@ -17,6 +18,8 @@ from .model import (
     SubjectNodeAttributes,
     System,
     SystemGraph,
+    classify_action_stage,
+    level_to_enum_member,
 )
 
 
@@ -56,26 +59,21 @@ def _default_edge_attrs() -> EdgeAttributes:
     )
 
 
-def _enum_from_level(enum_cls, level_value: int):
-    """Look up enum member by level value (0=low, 1=mixed, 2=high)."""
-    for member in enum_cls:
-        if member.level().value == level_value:
-            return member
-    raise ValueError(f"No {enum_cls.__name__} member for level={level_value}")
+def _action(name: str) -> ActionNode:
+    return ActionNode(name=name, stage=classify_action_stage(name))
 
 
 def infer_subject_attributes_from_assets(system: System) -> None:
     """Infer key subject correctness/continuity from dependency assets.
 
     Rules (correctness/continuity upper-bounded by dependent assets):
-    - IntelligentSystem <= Model, Application, Dependency
+    - InferenceModule <= Model, Application, Dependency
     - PreprocessingModule <= Application, Dependency
     - InferenceModule <= Model, Application, Dependency
     - PostprocessingModule <= Application, Dependency
     """
     graph = system.graph
     infer_targets = {
-        "IntelligentSystem",
         "PreprocessingModule",
         "InferenceModule",
         "PostprocessingModule",
@@ -105,8 +103,8 @@ def infer_subject_attributes_from_assets(system: System) -> None:
         current = node.as_subject()
         inferred_attrs = SubjectNodeAttributes(
             credibility=current.credibility,
-            correctness=_enum_from_level(Correctness, inferred_correctness_level),
-            continuity=_enum_from_level(Continuity, inferred_continuity_level),
+            correctness=level_to_enum_member(Correctness, inferred_correctness_level),
+            continuity=level_to_enum_member(Continuity, inferred_continuity_level),
         )
         graph.nodes[subject_name] = replace(node, subject_attributes=inferred_attrs)
 
@@ -115,99 +113,188 @@ def build_default_system() -> System:
     graph = SystemGraph()
 
     subjects = [
-        _subject("IntelligentSystem", "Agent", Credibility.MIXED_CREDIBILITY),
+        _subject("DataWorkers", "Participant", Credibility.MIXED_CREDIBILITY),
+        _subject("ModelDevelopers", "Participant", Credibility.TRUSTED),
+        _subject("ModelHub", "Source", Credibility.MIXED_CREDIBILITY),
+        _subject("Maintainers", "Participant", Credibility.MIXED_CREDIBILITY),
+        _subject("AppDevelopers", "Participant", Credibility.TRUSTED),
+        _subject("AppHub", "Source", Credibility.MIXED_CREDIBILITY),
+        _subject("DependencyDevelopers", "Participant", Credibility.MIXED_CREDIBILITY),
+        _subject("DependencyHub", "Source", Credibility.MIXED_CREDIBILITY),
         _subject("PreprocessingModule", "Agent", Credibility.MIXED_CREDIBILITY),
         _subject("InferenceModule", "Agent", Credibility.MIXED_CREDIBILITY),
         _subject("PostprocessingModule", "Agent", Credibility.MIXED_CREDIBILITY),
-        _subject("User", "Participant", Credibility.MIXED_CREDIBILITY),
-        _subject("ModelDeveloper", "Participant", Credibility.TRUSTED),
-        _subject("AppDeveloper", "Participant", Credibility.TRUSTED),
-        _subject("Maintainer", "Participant", Credibility.MIXED_CREDIBILITY),
-        _subject("DataWorker", "Participant", Credibility.MIXED_CREDIBILITY),
-        _subject("OperatingEnvironment", "Participant", Credibility.MIXED_CREDIBILITY),
+        _subject("Users", "Participant", Credibility.MIXED_CREDIBILITY),
+        _subject("OutsideEnv", "Participant", Credibility.MIXED_CREDIBILITY),
     ]
 
     objects = [
-        _object("RawData", "Asset", Confidentiality.CONFIDENTIAL),
-        _object("ProcessedData", "Asset", Confidentiality.CONFIDENTIAL),
-        _object("ModelPretrained", "Asset", Confidentiality.MIXED_CONFIDENTIALITY),
-        _object("ModelTrained", "Asset", Confidentiality.CONFIDENTIAL),
-        _object("Model", "Asset", Confidentiality.CONFIDENTIAL),
-        _object("ApplicationProgrammed", "Asset", Confidentiality.MIXED_CONFIDENTIALITY),
-        _object("Application", "Asset", Confidentiality.MIXED_CONFIDENTIALITY),
-        _object("Dependency", "Asset", Confidentiality.NON_CONFIDENTIAL),
-        _object("InputQuery", "Asset", Confidentiality.CONFIDENTIAL),
-        _object("InputToken", "Asset", Confidentiality.CONFIDENTIAL),
-        _object("OutputToken", "Asset", Confidentiality.MIXED_CONFIDENTIALITY),
-        _object("OutputMaterialized", "Asset", Confidentiality.MIXED_CONFIDENTIALITY),
-        _object("ModelHub", "Source", Confidentiality.MIXED_CONFIDENTIALITY),
-        _object("AppHub", "Source", Confidentiality.MIXED_CONFIDENTIALITY),
-        _object("DependencyHub", "Source", Confidentiality.NON_CONFIDENTIAL),
+        _object("RawDataO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("UnstructuredDataI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("UnstructuredDataO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("ProcessedDataI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("ModelMaterialO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("ModelToBeUploadI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("ModelToBeUploadO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("ModelUploadedI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("ModelUploadedO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("ModelDownloadedI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("PretrainedModelDownloadedI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("PretrainedModelDownloadedO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("RawDataP", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("ModelSpecP", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("PretrainedModelDeclarationP", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("AppSpecO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("AppProgrammedI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("AppProgrammedO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("AppUploadedI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("AppUploadedO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("AppDownloadedI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("AppSpecP", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("DependencyProgrammedO", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("DependenciesUploadedI", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("DependenciesUploadedO", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("DependenciesDownloadedI", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("DependencyProgrammedP", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("DependencyDeclarationI", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("OperatingEnvP", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("AppAndDepO", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("ModelAppAndDepO", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("AppAndDepI", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("ModelAppAndDepI", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("ProposalP", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("ProposalMaterializedP", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("InputO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("InputMaterializedO", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("InputI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("InputTokensO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("InputTokensI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("OutputTokensO", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("OutputTokensI", "Asset", Confidentiality.CONFIDENTIAL),
+        _object("OutputO", "Asset", Confidentiality.MIXED_CONFIDENTIALITY),
+        _object("OutputI", "Asset", Confidentiality.MIXED_CONFIDENTIALITY),
+        _object("OutputMaterializedI", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("OutputFeedbackO", "Asset", Confidentiality.NON_CONFIDENTIAL),
+        _object("FeedbackI", "Asset", Confidentiality.NON_CONFIDENTIAL),
     ]
 
     for node in subjects + objects:
         graph.add_node(node)
 
-    # Core SSA and structural edges based on the document.
-    # Each operation has: input(s) as ACTED_ON_BY, output as ACT
-    edge_specs = [
-        ("RawData", "DataWorker", EdgeType.ACTED_ON_BY, "1.Process"),
-        ("DataWorker", "ProcessedData", EdgeType.ACT, "1.Process"),
-        ("ProcessedData", "ModelDeveloper", EdgeType.ACTED_ON_BY, "2.Train"),
-        ("ModelPretrained", "ModelDeveloper", EdgeType.ACTED_ON_BY, "2.Train"),
-        ("ModelDeveloper", "ModelTrained", EdgeType.ACT, "2.Train"),
-        ("ModelTrained", "ModelDeveloper", EdgeType.ACTED_ON_BY, "3.Upload"),
-        ("ModelDeveloper", "ModelHub", EdgeType.ACT, "3.Upload"),
-        ("ModelHub", "Maintainer", EdgeType.ACTED_ON_BY, "4.Download"),
-        ("Maintainer", "Model", EdgeType.ACT, "4.Download"),
-        ("AppDeveloper", "ApplicationProgrammed", EdgeType.ACT, "5.Program"),
-        ("ApplicationProgrammed", "AppDeveloper", EdgeType.ACTED_ON_BY, "6.Upload"),
-        ("AppDeveloper", "AppHub", EdgeType.ACT, "6.Upload"),
-        ("AppHub", "Maintainer", EdgeType.ACTED_ON_BY, "7.Download"),
-        ("Maintainer", "Application", EdgeType.ACT, "7.Download"),
-        ("DependencyHub", "Maintainer", EdgeType.ACTED_ON_BY, "8.Download"),
-        ("Maintainer", "Dependency", EdgeType.ACT, "8.Download"),
-        ("Model", "Maintainer", EdgeType.ACTED_ON_BY, "9.Assemble"),
-        ("Application", "Maintainer", EdgeType.ACTED_ON_BY, "9.Assemble"),
-        ("Dependency", "Maintainer", EdgeType.ACTED_ON_BY, "9.Assemble"),
-        ("Maintainer", "IntelligentSystem", EdgeType.ACT, "9.Assemble"),
-        ("User", "InputQuery", EdgeType.ACT, "10.Propose"),
-        ("InputQuery", "PreprocessingModule", EdgeType.ACTED_ON_BY, "11.Pre-Process"),
-        ("PreprocessingModule", "InputToken", EdgeType.ACT, "11.Pre-Process"),
-        ("InputToken", "InferenceModule", EdgeType.ACTED_ON_BY, "12.Inference"),
-        ("InferenceModule", "OutputToken", EdgeType.ACT, "12.Inference"),
-        ("OutputToken", "PostprocessingModule", EdgeType.ACTED_ON_BY, "13.Post-Process"),
-        ("PostprocessingModule", "OutputMaterialized", EdgeType.ACT, "13.Post-Process"),
-        ("PreprocessingModule", "IntelligentSystem", EdgeType.COMPONENT_OF, "ComponentOf"),
-        ("InferenceModule", "IntelligentSystem", EdgeType.COMPONENT_OF, "ComponentOf"),
-        ("PostprocessingModule", "IntelligentSystem", EdgeType.COMPONENT_OF, "ComponentOf"),
-        ("IntelligentSystem", "OperatingEnvironment", EdgeType.COMPONENT_OF, "ComponentOf"),
-        ("OutputMaterialized", "User", EdgeType.RESPOND, "R1.Respond"),
-        ("OutputMaterialized", "OperatingEnvironment", EdgeType.RESPOND, "R2.Respond"),
-        ("OperatingEnvironment", "IntelligentSystem", EdgeType.RESPOND, "R3.Respond"),
-        ("User", "DataWorker", EdgeType.RESPOND, "R4.Respond"),
-        ("User", "ModelDeveloper", EdgeType.RESPOND, "R5.Respond"),
-        ("User", "AppDeveloper", EdgeType.RESPOND, "R6.Respond"),
-        ("User", "Maintainer", EdgeType.RESPOND, "R7.Respond"),
+    for action_name in [
+        "M0.Initialize",
+        "M1.Collection",
+        "M2.Process",
+        "M3.Download",
+        "M4.Train",
+        "M5.Upload",
+        "M6.Download",
+        "A0.Initialize",
+        "A1.Program",
+        "A2.Upload",
+        "A3.Download",
+        "P0.Initialize",
+        "P1.Upload",
+        "P2.Download",
+        "D0.Initialize",
+        "D1.Delopy",
+        "D2.Delopy",
+        "D3.Delopy",
+        "O0.Initialize",
+        "O1.Input",
+        "O2.Preprocess",
+        "O3.Infer",
+        "O4.Postprocess",
+        "F1.Feedback",
+    ]:
+        graph.add_action(_action(action_name))
+
+    # Full Model 2.0 arc catalog: (object_name, src, dst)
+    # where src/dst are subject or action identifiers.
+    arc_specs = [
+        ("RawDataP", "M0.Initialize", "DataWorkers"),
+        ("ModelSpecP", "M0.Initialize", "ModelDevelopers"),
+        ("PretrainedModelDeclarationP", "M0.Initialize", "ModelHub"),
+        ("RawDataO", "DataWorkers", "M1.Collection"),
+        ("UnstructuredDataI", "M1.Collection", "DataWorkers"),
+        ("UnstructuredDataO", "DataWorkers", "M2.Process"),
+        ("ProcessedDataI", "M2.Process", "ModelDevelopers"),
+        ("PretrainedModelDownloadedI", "ModelHub", "M3.Download"),
+        ("PretrainedModelDownloadedO", "M3.Download", "ModelDevelopers"),
+        ("ModelMaterialO", "ModelDevelopers", "M4.Train"),
+        ("ModelToBeUploadI", "M4.Train", "ModelDevelopers"),
+        ("ModelToBeUploadO", "ModelDevelopers", "M5.Upload"),
+        ("ModelUploadedI", "M5.Upload", "ModelHub"),
+        ("ModelUploadedO", "ModelHub", "M6.Download"),
+        ("ModelDownloadedI", "M6.Download", "Maintainers"),
+        ("AppSpecP", "A0.Initialize", "AppDevelopers"),
+        ("AppSpecO", "AppDevelopers", "A1.Program"),
+        ("AppProgrammedI", "A1.Program", "AppDevelopers"),
+        ("AppProgrammedO", "AppDevelopers", "A2.Upload"),
+        ("AppUploadedI", "A2.Upload", "AppHub"),
+        ("AppUploadedO", "AppHub", "A3.Download"),
+        ("AppDownloadedI", "A3.Download", "Maintainers"),
+        ("DependencyProgrammedP", "P0.Initialize", "DependencyDevelopers"),
+        ("DependencyProgrammedO", "DependencyDevelopers", "P1.Upload"),
+        ("DependenciesUploadedI", "P1.Upload", "DependencyHub"),
+        ("DependenciesUploadedO", "DependencyHub", "P2.Download"),
+        ("DependenciesDownloadedI", "P2.Download", "Maintainers"),
+        ("DependencyDeclarationI", "A1.Program", "DependencyHub"),
+        ("OperatingEnvP", "D0.Initialize", "Maintainers"),
+        ("AppAndDepO", "Maintainers", "D1.Delopy"),
+        ("ModelAppAndDepO", "Maintainers", "D2.Delopy"),
+        ("AppAndDepO", "Maintainers", "D3.Delopy"),
+        ("AppAndDepI", "D1.Delopy", "PreprocessingModule"),
+        ("ModelAppAndDepI", "D2.Delopy", "InferenceModule"),
+        ("AppAndDepI", "D3.Delopy", "PostprocessingModule"),
+        ("ProposalP", "O0.Initialize", "Users"),
+        ("ProposalMaterializedP", "O0.Initialize", "OutsideEnv"),
+        ("InputO", "Users", "O1.Input"),
+        ("InputMaterializedO", "OutsideEnv", "O1.Input"),
+        ("InputI", "O1.Input", "PreprocessingModule"),
+        ("InputTokensO", "PreprocessingModule", "O2.Preprocess"),
+        ("InputTokensI", "O2.Preprocess", "InferenceModule"),
+        ("OutputTokensO", "InferenceModule", "O3.Infer"),
+        ("OutputTokensI", "O3.Infer", "PostprocessingModule"),
+        ("OutputO", "PostprocessingModule", "O4.Postprocess"),
+        ("OutputI", "O4.Postprocess", "Users"),
+        ("OutputMaterializedI", "O4.Postprocess", "OutsideEnv"),
+        ("OutputFeedbackO", "Users", "F1.Feedback"),
+        ("FeedbackI", "F1.Feedback", "ModelDevelopers"),
+        ("FeedbackI", "F1.Feedback", "AppDevelopers"),
+        ("FeedbackI", "F1.Feedback", "DependencyDevelopers"),
+        ("FeedbackI", "F1.Feedback", "Maintainers"),
     ]
 
     default_attrs = _default_edge_attrs()
-    for src, tgt, e_type, name in edge_specs:
+    subject_names = {node.name for node in subjects}
+    for object_name, src, dst in arc_specs:
+        if src in subject_names:
+            source_name = src
+            target_name = object_name
+            action_name = dst
+        elif dst in subject_names:
+            source_name = object_name
+            target_name = dst
+            action_name = src
+        else:
+            raise ValueError(f"Invalid arc endpoints for object {object_name}: src={src}, dst={dst}")
+
         graph.add_edge(
             Edge(
-                source=src,
-                target=tgt,
-                type=e_type,
-                name=name,
+                source=source_name,
+                target=target_name,
+                type=EdgeType.OBJECT_ARC,
+                name=object_name,
+                action=action_name,
                 attributes=default_attrs,
             )
         )
 
     dependencies = {
-        "IntelligentSystem": {"Model", "Application", "Dependency"},
-        "PreprocessingModule": {"Application", "Dependency"},
-        "InferenceModule": {"Model", "Application", "Dependency"},
-        "PostprocessingModule": {"Application", "Dependency"},
+        "PreprocessingModule": {"AppAndDepI"},
+        "InferenceModule": {"ModelAppAndDepI"},
+        "PostprocessingModule": {"AppAndDepI"},
     }
 
     system = System(graph=graph, dependencies=dependencies)

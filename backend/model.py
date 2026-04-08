@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Type
 
 
 class Level(Enum):
@@ -91,10 +91,7 @@ class ObjectNodeType(Enum):
 
 
 class EdgeType(Enum):
-    ACT = "Act"
-    ACTED_ON_BY = "ActedOnBy"
-    RESPOND = "Respond"
-    COMPONENT_OF = "ComponentOf"
+    OBJECT_ARC = "ObjectArc"
 
 
 class SecurityGrade(Enum):
@@ -149,16 +146,27 @@ class Edge:
     target: str
     type: EdgeType
     name: str
+    action: str
     attributes: EdgeAttributes
+
+
+@dataclass(frozen=True)
+class ActionNode:
+    name: str
+    stage: str
 
 
 @dataclass
 class SystemGraph:
     nodes: Dict[str, Node] = field(default_factory=dict)
+    actions: Dict[str, ActionNode] = field(default_factory=dict)
     edges: List[Edge] = field(default_factory=list)
 
     def add_node(self, node: Node) -> None:
         self.nodes[node.name] = node
+
+    def add_action(self, action: ActionNode) -> None:
+        self.actions[action.name] = action
 
     def add_edge(self, edge: Edge) -> None:
         if edge.source not in self.nodes:
@@ -229,21 +237,63 @@ class ObjectArcPetriNet2:
 
 
 def _classify_stage(action_name: str) -> str:
-    if action_name.startswith("R"):
-        if action_name in {"R1.Respond", "R2.Respond", "R3.Respond"}:
-            return "Response"
-        return "Feedback"
-    try:
-        prefix = int(action_name.split(".")[0])
-    except (ValueError, IndexError):
-        return "Other"
-    if 1 <= prefix <= 3:
+    token = action_name.split(".", 1)[0]
+    if token.startswith("M"):
         return "Development"
-    if 4 <= prefix <= 9:
+    if token.startswith(("A", "P", "D")):
         return "Deployment"
-    if 10 <= prefix <= 13:
-        return "Inference"
+    if token.startswith("O"):
+        return "Response" if action_name.startswith("O4.") else "Inference"
+    if token.startswith("F"):
+        return "Feedback"
     return "Other"
+
+
+def classify_action_stage(action_name: str) -> str:
+    """Public helper for assigning action stage names from action ids."""
+    return _classify_stage(action_name)
+
+
+def stage_sort_key(action_name: str) -> tuple[int, int]:
+    """Stable stage-aware sort key for action identifiers."""
+    stage_order = {
+        "Development": 0,
+        "Deployment": 1,
+        "Inference": 2,
+        "Response": 3,
+        "Feedback": 4,
+        "Other": 5,
+    }
+    stage = _classify_stage(action_name)
+    token = action_name.split(".", 1)[0]
+    numeric_suffix = token[1:] if len(token) > 1 else ""
+    number = int(numeric_suffix) if numeric_suffix.isdigit() else 999
+    return (stage_order.get(stage, 100), number)
+
+
+def level_to_enum_member(enum_cls: Type[_LeveledEnum], level_value: int) -> _LeveledEnum:
+    """Reverse-map a security level value back to its enum member."""
+    for member in enum_cls:
+        if member.level().value == level_value:
+            return member
+    raise ValueError(f"No {enum_cls.__name__} member for level={level_value}")
+
+
+def are_opposite_node_types(source: Node, target: Node) -> bool:
+    """Return whether endpoints are bipartite (subject-to-object or object-to-subject)."""
+    return source.is_subject != target.is_subject
+
+
+def is_object_to_subject_edge(edge: Edge, graph: SystemGraph) -> bool:
+    source = graph.nodes[edge.source]
+    target = graph.nodes[edge.target]
+    return are_opposite_node_types(source, target) and (not source.is_subject) and target.is_subject
+
+
+def is_subject_to_object_edge(edge: Edge, graph: SystemGraph) -> bool:
+    source = graph.nodes[edge.source]
+    target = graph.nodes[edge.target]
+    return are_opposite_node_types(source, target) and source.is_subject and (not target.is_subject)
 
 
 def project_system_to_model2(system: System) -> ObjectArcPetriNet2:
@@ -267,61 +317,56 @@ def project_system_to_model2(system: System) -> ObjectArcPetriNet2:
             continuity=s.continuity.value,
         )
 
-    for edge in graph.edges:
-        if edge.name == "ComponentOf":
-            continue
-        if edge.name not in net.actions:
-            net.actions[edge.name] = ActionNode2(
-                name=edge.name,
-                stage=_classify_stage(edge.name),
-            )
+    for action in graph.actions.values():
+        net.actions[action.name] = ActionNode2(
+            name=action.name,
+            stage=action.stage,
+        )
 
     for edge in graph.edges:
-        if edge.name == "ComponentOf":
-            continue
 
         attrs = edge.attributes
-        action_name = edge.name
+        action_name = edge.action
+        if action_name not in net.actions:
+            raise ValueError(f"Edge references undefined action node: {action_name}")
 
-        if edge.type == EdgeType.ACTED_ON_BY:
+        src_is_subject = edge.source in net.subjects
+        tgt_is_subject = edge.target in net.subjects
+
+        if (not src_is_subject) and tgt_is_subject:
             # object -> subject (input object consumed by action)
-            if edge.target in net.subjects:
-                net.object_arcs.append(
-                    ObjectArc2(
-                        name=f"{action_name}:{edge.source}:in",
-                        object_name=edge.source,
-                        src=edge.target,
-                        dst=action_name,
-                        confidentiality=attrs.confidentiality,
-                        correctness=attrs.correctness,
-                        continuity=attrs.continuity,
-                    )
+            net.object_arcs.append(
+                ObjectArc2(
+                    name=f"{action_name}:{edge.name}:in",
+                    object_name=edge.name,
+                    src=edge.target,
+                    dst=action_name,
+                    confidentiality=attrs.confidentiality,
+                    correctness=attrs.correctness,
+                    continuity=attrs.continuity,
                 )
-
-        elif edge.type == EdgeType.ACT:
+            )
+        elif src_is_subject and (not tgt_is_subject):
             # subject -> object (output object produced by action)
-            if edge.source in net.subjects:
-                net.object_arcs.append(
-                    ObjectArc2(
-                        name=f"{action_name}:{edge.target}:out",
-                        object_name=edge.target,
-                        src=action_name,
-                        dst=edge.source,
-                        confidentiality=attrs.confidentiality,
-                        correctness=attrs.correctness,
-                        continuity=attrs.continuity,
-                    )
+            net.object_arcs.append(
+                ObjectArc2(
+                    name=f"{action_name}:{edge.name}:out",
+                    object_name=edge.name,
+                    src=action_name,
+                    dst=edge.source,
+                    confidentiality=attrs.confidentiality,
+                    correctness=attrs.correctness,
+                    continuity=attrs.continuity,
                 )
-
-        elif edge.type == EdgeType.RESPOND:
-            # response object-flow represented as a single object arc
-            subject_endpoint = edge.target if edge.target in net.subjects else edge.source
+            )
+        else:
+            # subject-subject fallbacks are mapped as action outputs to the target subject.
+            subject_endpoint = edge.target if tgt_is_subject else edge.source
             if subject_endpoint in net.subjects:
-                obj_name = edge.source if edge.source not in net.subjects else edge.target
                 net.object_arcs.append(
                     ObjectArc2(
-                        name=f"{action_name}:{obj_name}:resp",
-                        object_name=obj_name,
+                        name=f"{action_name}:{edge.name}:resp",
+                        object_name=edge.name,
                         src=action_name,
                         dst=subject_endpoint,
                         confidentiality=attrs.confidentiality,

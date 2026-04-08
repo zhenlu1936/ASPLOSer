@@ -1,51 +1,48 @@
-# Scenario 3: Adversarial Supply Chain With Propagation Risks
+# Scenario 3: Compromised Release Incident
 
 ## Composition Note
 
 This document describes the composed runtime state after applying `scenario3.yaml` on top of the default system.
 
-Scenario 3 is the adversarial reference case used for propagation-risk validation.
+This scenario models a supply-chain compromise where untrusted contributors and tainted artifacts propagate risks across deployment and runtime.
 
 ## Overview
 
-Scenario 3 introduces untrusted participants, non-confidential channels, and discontinuous edges to trigger confidentiality and availability risks.
+Scenario 3 emphasizes cascading confidentiality and availability risk propagation under degraded trust and discontinuous release operations.
 
 ### Node
 
 Overrides and inferred highlights:
 
-- DataWorker credibility: **Untrusted**
-- DataWorker correctness: **MixedCorrectness**
-- DataWorker continuity: **MixedContinuity**
-- AppDeveloper credibility: **Untrusted**
-- AppDeveloper correctness: **MixedCorrectness**
-- AppDeveloper continuity: **MixedContinuity**
-- Maintainer credibility: **Untrusted**
-- Maintainer correctness: **MixedCorrectness**
-- Maintainer continuity: **Discontinuous**
-- OperatingEnvironment credibility: **MixedCredibility**
-- OperatingEnvironment correctness: **MixedCorrectness**
-- OperatingEnvironment continuity: **MixedContinuity**
-
-Object-side highlights:
-
-- ModelHub confidentiality: **NonConfidential**
-- ModelHub correctness: **MixedCorrectness**
-- AppHub confidentiality: **NonConfidential**
-- AppHub correctness: **MixedCorrectness**
-- DependencyHub confidentiality: **NonConfidential**
-- DependencyHub correctness: **MixedCorrectness**
-- DependencyHub continuity: **MixedContinuity**
+- AppDevelopers credibility: **Untrusted**
+- AppDevelopers correctness: **MixedCorrectness**
+- AppDevelopers continuity: **MixedContinuity**
+- AppUploadedO confidentiality: **NonConfidential**
+- AppUploadedO correctness: **MixedCorrectness**
+- DataWorkers credibility: **Untrusted**
+- DataWorkers correctness: **MixedCorrectness**
+- DataWorkers continuity: **MixedContinuity**
+- DependenciesUploadedO confidentiality: **NonConfidential**
+- DependenciesUploadedO correctness: **MixedCorrectness**
+- DependenciesUploadedO continuity: **MixedContinuity**
+- Maintainers credibility: **Untrusted**
+- Maintainers correctness: **MixedCorrectness**
+- Maintainers continuity: **Discontinuous**
+- ModelUploadedO confidentiality: **NonConfidential**
+- ModelUploadedO correctness: **MixedCorrectness**
+- OutsideEnv credibility: **MixedCredibility**
+- OutsideEnv correctness: **MixedCorrectness**
+- OutsideEnv continuity: **MixedContinuity**
 
 ### Edge
 
 Key overridden edges:
 
-- 1.Process (DataWorker -> ProcessedData, Act): confidentiality **NonConfidential**, correctness **MixedCorrectness**, continuity **MixedContinuity**
-- 4.Download (ModelHub -> Maintainer, ActedOnBy): confidentiality **NonConfidential**, correctness **MixedCorrectness**, continuity **Discontinuous**
-- 8.Download (Maintainer -> Dependency, Act): confidentiality **NonConfidential**, correctness **MixedCorrectness**, continuity **Discontinuous**
-- 9.Assemble (Maintainer -> IntelligentSystem, Act): correctness **MixedCorrectness**, continuity **Discontinuous**
-- R1.Respond (OutputMaterialized -> User, Respond): confidentiality **NonConfidential**, correctness **MixedCorrectness**, continuity **Discontinuous**
+- M2.Process (DataWorkers -> UnstructuredDataO): confidentiality **NonConfidential**, correctness **MixedCorrectness**, continuity **MixedContinuity**
+- M6.Download (ModelDownloadedI -> Maintainers): confidentiality **NonConfidential**, correctness **MixedCorrectness**, continuity **Discontinuous**
+- P2.Download (DependenciesDownloadedI -> Maintainers): confidentiality **NonConfidential**, correctness **MixedCorrectness**, continuity **Discontinuous**
+- D2.Delopy (ModelAppAndDepI -> InferenceModule): correctness **MixedCorrectness**, continuity **Discontinuous**
+- O4.Postprocess (OutputI -> Users): confidentiality **NonConfidential**, correctness **MixedCorrectness**, continuity **Discontinuous**
 
 ## Usage
 
@@ -53,4 +50,3 @@ Key overridden edges:
 python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1
 ```
 
-Expected result: propagation risks appear in `output/scenario3_propagation_log.txt`.

@@ -10,6 +10,7 @@ It includes:
 	- arcs as objects (single arc type)
 - Attribute-based security dimensions (confidentiality, correctness, continuity, credibility)
 - Colored execution with level propagation and stage ordering (M/A/P/D/O/F)
+- Initialize-phase static assignment for object-arc attributes, followed by semantic propagation
 - Structural constraint checks and propagation-risk analysis
 - Scenario-driven simulation via YAML overrides
 - Diagram export and propagation logs under `output/`
@@ -34,7 +35,7 @@ python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1 --export-pict
 
 - Framework overview: `docs/README_framework.md`
 - Detailed model and rationale: `docs/asploser.md`
-- Scenario guides: `docs/scenario1.md` to `docs/scenario4.md`
+- Scenario guides: `docs/scenario1.md` to `docs/scenario5.md`
 
 ## License
 

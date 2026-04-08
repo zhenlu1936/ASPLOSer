@@ -12,9 +12,13 @@ from .model import (
     Correctness,
     Credibility,
     Edge,
-    EdgeType,
     System,
+    is_object_to_subject_edge,
+    is_subject_to_object_edge,
+    level_to_enum_member,
+    stage_sort_key,
 )
+from .security_aggregation import min_level
 
 
 @dataclass(frozen=True)
@@ -25,90 +29,39 @@ class TokenColor:
     continuity: Continuity
 
 
-def _classify_stage(edge_name: str) -> str:
-    """Classify edge into lifecycle stage based on edge name prefix."""
-    if edge_name.startswith("R"):
-        # Response and feedback stages
-        if edge_name in {"R1.Respond", "R2.Respond", "R3.Respond"}:
-            return "Response"
-        else:  # R4, R5, R6, R7
-            return "Feedback"
-    elif edge_name.startswith("ComponentOf"):
-        return "Structural"
-    else:
-        # Parse numeric prefix: 1-3=Development, 4-9=Deployment, 10-13=Inference
-        try:
-            prefix = edge_name.split(".")[0]
-            num = int(prefix)
-            if 1 <= num <= 3:
-                return "Development"
-            elif 4 <= num <= 9:
-                return "Deployment"
-            elif 10 <= num <= 13:
-                return "Inference"
-        except (ValueError, IndexError):
-            pass
-    return "Other"
-
-
-def _sort_key(edge_name: str) -> tuple:
-    """Generate a sort key for edge ordering."""
-    stage_order = {
-        "Development": 0,
-        "Deployment": 1,
-        "Inference": 2,
-        "Response": 3,
-        "Feedback": 4,
-        "Structural": 5,
-        "Other": 6,
-    }
-    stage = _classify_stage(edge_name)
-    try:
-        # Extract numeric prefix for in-stage ordering.
-        prefix = edge_name.split(".")[0]
-        # Handle R-prefixed edges separately.
-        if prefix.startswith("R"):
-            num = int(prefix[1:]) + 100
-        else:
-            num = int(prefix)
-    except (ValueError, IndexError):
-        num = 999
-    return (stage_order.get(stage, 100), num)
-
-
-def _enum_from_level(enum_cls, level_value: int):
-    for member in enum_cls:
-        if member.level().value == level_value:
-            return member
-    raise ValueError(f"No {enum_cls.__name__} member for level={level_value}")
-
-
-def _level_min(values: List[int], fallback: int = 2) -> int:
-    return min(values) if values else fallback
+def _build_token_color(
+    correctness: Correctness,
+    continuity: Continuity,
+    confidentiality: Confidentiality | None = None,
+    credibility: Credibility | None = None,
+) -> TokenColor:
+    return TokenColor(
+        confidentiality=confidentiality,
+        credibility=credibility,
+        correctness=correctness,
+        continuity=continuity,
+    )
 
 
 def _node_token_color(node) -> TokenColor:
     if node.is_subject:
         s = node.as_subject()
-        return TokenColor(
-            confidentiality=None,
+        return _build_token_color(
             credibility=s.credibility,
             correctness=s.correctness,
             continuity=s.continuity,
         )
     o = node.as_object()
-    return TokenColor(
+    return _build_token_color(
         confidentiality=o.confidentiality,
-        credibility=None,
         correctness=o.correctness,
         continuity=o.continuity,
     )
 
 
 def _edge_token_color(edge: Edge) -> TokenColor:
-    return TokenColor(
+    return _build_token_color(
         confidentiality=edge.attributes.confidentiality,
-        credibility=None,
         correctness=edge.attributes.correctness,
         continuity=edge.attributes.continuity,
     )
@@ -125,7 +78,7 @@ def _color_brief(color: TokenColor) -> str:
 def _fire_act_transition(graph, edge: Edge, marking: Dict[str, TokenColor], acted_on_by_map: Dict[str, List[Edge]]) -> tuple[str, TokenColor]:
     actor = edge.source
     output = edge.target
-    op_name = edge.name
+    op_name = edge.action
 
     input_nodes: List[str] = []
     for input_edge in acted_on_by_map.get(op_name, []):
@@ -140,16 +93,15 @@ def _fire_act_transition(graph, edge: Edge, marking: Dict[str, TokenColor], acte
 
     corr_levels = [actor_color.correctness.level().value, edge_color.correctness.level().value]
     corr_levels.extend(token.correctness.level().value for token in input_colors)
-    out_corr = _enum_from_level(Correctness, _level_min(corr_levels, fallback=2))
+    out_corr = level_to_enum_member(Correctness, min_level(corr_levels))
 
     cont_levels = [actor_color.continuity.level().value, edge_color.continuity.level().value]
     cont_levels.extend(token.continuity.level().value for token in input_colors)
-    out_cont = _enum_from_level(Continuity, _level_min(cont_levels, fallback=2))
+    out_cont = level_to_enum_member(Continuity, min_level(cont_levels))
 
     if output_node.is_subject:
         designated = _node_token_color(output_node)
-        out_color = TokenColor(
-            confidentiality=None,
+        out_color = _build_token_color(
             credibility=designated.credibility,
             correctness=out_corr,
             continuity=out_cont,
@@ -163,10 +115,9 @@ def _fire_act_transition(graph, edge: Edge, marking: Dict[str, TokenColor], acte
             for token in input_colors
             if token.confidentiality is not None
         )
-        out_conf = _enum_from_level(Confidentiality, _level_min(conf_levels, fallback=2))
-        out_color = TokenColor(
+        out_conf = level_to_enum_member(Confidentiality, min_level(conf_levels))
+        out_color = _build_token_color(
             confidentiality=out_conf,
-            credibility=None,
             correctness=out_corr,
             continuity=out_cont,
         )
@@ -190,29 +141,27 @@ def _fire_respond_transition(graph, edge: Edge, marking: Dict[str, TokenColor]) 
 
     corr_levels = [source_color.correctness.level().value, edge_color.correctness.level().value, target_color.correctness.level().value]
     cont_levels = [source_color.continuity.level().value, edge_color.continuity.level().value, target_color.continuity.level().value]
-    out_corr = _enum_from_level(Correctness, _level_min(corr_levels, fallback=2))
-    out_cont = _enum_from_level(Continuity, _level_min(cont_levels, fallback=2))
+    out_corr = level_to_enum_member(Correctness, min_level(corr_levels))
+    out_cont = level_to_enum_member(Continuity, min_level(cont_levels))
 
     if target_node.is_subject:
         designated = _node_token_color(target_node)
-        out_color = TokenColor(
-            confidentiality=None,
+        out_color = _build_token_color(
             credibility=designated.credibility,
             correctness=out_corr,
             continuity=out_cont,
         )
     else:
         designated = _node_token_color(target_node)
-        out_color = TokenColor(
+        out_color = _build_token_color(
             confidentiality=designated.confidentiality,
-            credibility=None,
             correctness=out_corr,
             continuity=out_cont,
         )
 
     marking[edge.target] = out_color
     action = (
-        f"CPN[{edge.name}] {edge.source}.Respond({edge.target}) "
+        f"CPN[{edge.action}] {edge.source}.Respond({edge.target}) "
         f"=> {{{_color_brief(out_color)}}}"
     )
     return action, out_color
@@ -231,32 +180,45 @@ def run_cpn_cycles(
     """
     graph = system.graph
 
-    # Group edges by stage.
+    # Group actions by stage, then resolve the corresponding object-flow edges.
+    stage_actions: Dict[str, List[str]] = {
+        "Development": [],
+        "Deployment": [],
+        "Inference": [],
+        "Response": [],
+        "Feedback": [],
+    }
+
+    for action in graph.actions.values():
+        if action.stage in stage_actions:
+            stage_actions[action.stage].append(action.name)
+
+    for action_names in stage_actions.values():
+        action_names.sort(key=stage_sort_key)
+
     stages: Dict[str, List] = {
         "Development": [],
         "Deployment": [],
         "Inference": [],
         "Response": [],
         "Feedback": [],
-        "Structural": [],
     }
 
+    edges_by_action: Dict[str, List] = {}
     for edge in graph.edges:
-        stage = _classify_stage(edge.name)
-        if stage in stages:
-            stages[stage].append(edge)
+        edges_by_action.setdefault(edge.action, []).append(edge)
 
-    # Sort edges within each stage by their numeric prefix.
-    for stage_edges in stages.values():
-        stage_edges.sort(key=lambda e: _sort_key(e.name))
+    for stage_name, action_names in stage_actions.items():
+        for action_name in action_names:
+            stages[stage_name].extend(edges_by_action.get(action_name, []))
 
-    # Build a mapping: edge_name -> list of ACTED_ON_BY edges with that name
+    # Build a mapping: action_name -> object->subject edges (potential action inputs)
     acted_on_by_map: Dict[str, List] = {}
     for edge in graph.edges:
-        if edge.type == EdgeType.ACTED_ON_BY:
-            if edge.name not in acted_on_by_map:
-                acted_on_by_map[edge.name] = []
-            acted_on_by_map[edge.name].append(edge)
+        if is_object_to_subject_edge(edge, graph):
+            if edge.action not in acted_on_by_map:
+                acted_on_by_map[edge.action] = []
+            acted_on_by_map[edge.action].append(edge)
 
     all_states: List[ExecutionState] = []
     marking: Dict[str, TokenColor] = {
@@ -288,23 +250,41 @@ def run_cpn_cycles(
         processed_names: set = set()
 
         for edge in edges:
-            if edge.type == EdgeType.ACT:
-                # Skip ComponentOf and Respond edges; they're handled separately.
-                if edge.name == "ComponentOf" or edge.name.startswith("R"):
-                    continue
+            if edge.action in processed_names:
+                continue
+            processed_names.add(edge.action)
 
-                # Avoid duplicate processing of the same operation.
-                if edge.name in processed_names:
-                    continue
-                processed_names.add(edge.name)
+            action_edges = [item for item in edges if item.action == edge.action]
+            input_edges = [item for item in action_edges if is_object_to_subject_edge(item, graph)]
+            actor_subjects = {item.target for item in input_edges}
+            if not actor_subjects:
+                actor_subjects = {item.source for item in action_edges if graph.nodes[item.source].is_subject}
 
-                action, _ = _fire_act_transition(graph, edge, marking, acted_on_by_map)
-                all_states.append(_create_execution_state(cycle_index, stage_name, action))
+            output_edges = [
+                item
+                for item in action_edges
+                if is_subject_to_object_edge(item, graph) and item.source in actor_subjects
+            ]
+            if not output_edges:
+                output_edges = [
+                    item
+                    for item in action_edges
+                    if graph.nodes[item.source].is_subject and graph.nodes[item.target].is_subject and item.source in actor_subjects
+                ]
+
+            for output_edge in output_edges:
+                action_text, _ = _fire_act_transition(graph, output_edge, marking, acted_on_by_map)
+                all_states.append(_create_execution_state(cycle_index, stage_name, action_text))
                 step_index += 1
 
-            elif edge.type == EdgeType.RESPOND:
-                action, _ = _fire_respond_transition(graph, edge, marking)
-                all_states.append(_create_execution_state(cycle_index, stage_name, action))
+            respond_edges = [
+                item
+                for item in action_edges
+                if item not in output_edges and item not in input_edges and item.target not in actor_subjects
+            ]
+            for respond_edge in respond_edges:
+                action_text, _ = _fire_respond_transition(graph, respond_edge, marking)
+                all_states.append(_create_execution_state(cycle_index, stage_name, action_text))
                 step_index += 1
 
     for cycle in range(1, development_cycles + 1):

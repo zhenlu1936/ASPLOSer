@@ -1,7 +1,13 @@
 base: default
-name: model2-s2-enterprise-cloud
+name: model2-s2-hybrid-public-supply-chain
 
-# Model 2.0-oriented profile for public/mixed channels.
+doc_metadata:
+  title: "Scenario 2: Hybrid Public Supply Chain"
+  composition_note: "This scenario captures an enterprise assistant that consumes model, app, and dependency artifacts from mixed-trust public registries."
+  overview: "Scenario 2 models a mixed-trust release path where external artifacts can lower confidentiality, correctness, and continuity along the deployment chain."
+
+# Real-world profile:
+# An enterprise service that pulls model/app/dependency artifacts from mixed-trust public registries.
 
 node_overrides:
   - name: PreprocessingModule
@@ -10,47 +16,44 @@ node_overrides:
   - name: PostprocessingModule
     attributes:
       credibility: Trusted
-  - name: User
+  - name: Users
     attributes:
       credibility: Trusted
-  - name: Maintainer
+  - name: Maintainers
     attributes:
       continuity: MixedContinuity
-  - name: OperatingEnvironment
+  - name: OutsideEnv
     attributes:
       credibility: Trusted
       correctness: MixedCorrectness
       continuity: MixedContinuity
-  - name: ModelHub
+  - name: ModelUploadedO
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
-  - name: AppHub
+  - name: AppUploadedO
     attributes:
       confidentiality: NonConfidential
-  - name: DependencyHub
+  - name: DependenciesUploadedO
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
 
-edge_overrides:
-  - source: ModelHub
-    target: Maintainer
-    name: 4.Download
-    type: ActedOnBy
+initialize_edge_overrides:
+  - source: ModelDownloadedI
+    target: Maintainers
+    name: M6.Download
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
-  - source: DependencyHub
-    target: Maintainer
-    name: 8.Download
-    type: ActedOnBy
+  - source: DependenciesDownloadedI
+    target: Maintainers
+    name: P2.Download
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
-  - source: Maintainer
-    target: IntelligentSystem
-    name: 9.Assemble
-    type: Act
+  - source: ModelAppAndDepI
+    target: InferenceModule
+    name: D2.Delopy
     attributes:
       continuity: MixedContinuity

@@ -10,11 +10,12 @@ from .execution import ExecutionState
 from .model import (
     Confidentiality,
     Credibility,
-    EdgeType,
     SecurityGrade,
     SecurityObjectives,
     System,
+    are_opposite_node_types,
 )
+from .security_aggregation import grade_from_levels
 
 
 @dataclass(frozen=True)
@@ -80,11 +81,17 @@ def _write_cycle_summary(log_file, execution_counts: dict[int, int], risk_counts
     log_file.write("\n")
 
 
-def _grade_from_levels(levels: List[int]) -> SecurityGrade:
-    if not levels:
-        return SecurityGrade.MIXED
-    m = min(levels)
-    return {2: SecurityGrade.HIGH, 1: SecurityGrade.MIXED}.get(m, SecurityGrade.LOW)
+def _all_steps_share_same_analysis(execution_steps: List[ExecutionState]) -> tuple[bool, bool]:
+    """Return whether all execution steps carry identical violation/risk lists."""
+    if not execution_steps:
+        return False, False
+
+    first_violations = execution_steps[0].violations
+    first_risks = execution_steps[0].risks
+
+    same_violations = all(step.violations == first_violations for step in execution_steps)
+    same_risks = all(step.risks == first_risks for step in execution_steps)
+    return same_violations, same_risks
 
 
 def _extract_subject_object(source, target):
@@ -121,9 +128,9 @@ def compute_security_objectives(system: System) -> SecurityObjectives:
         availability_levels.append(min(s_cred_lvl, o.continuity.level().value, s.continuity.level().value))
 
     return SecurityObjectives(
-        confidentiality=_grade_from_levels(confidentiality_levels),
-        integrity=_grade_from_levels(integrity_levels),
-        availability=_grade_from_levels(availability_levels),
+        confidentiality=grade_from_levels(confidentiality_levels),
+        integrity=grade_from_levels(integrity_levels),
+        availability=grade_from_levels(availability_levels),
     )
 
 
@@ -131,28 +138,20 @@ def validate_structural_constraints(system: System) -> List[StructuralViolation]
     graph = system.graph
     violations: List[StructuralViolation] = []
 
-    # Component upper-bound rule.
+    # Model 2.0 requires bipartite connectivity between subject and object endpoints.
     for edge in graph.edges:
-        if edge.type != EdgeType.COMPONENT_OF:
-            continue
-        child = graph.nodes[edge.source]
-        parent = graph.nodes[edge.target]
-        if not child.is_subject or not parent.is_subject:
-            continue
-
-        child_attr = child.as_subject()
-        parent_attr = parent.as_subject()
-
-        for attr_name in ["correctness", "continuity"]:
-            parent_attr_val = getattr(parent_attr, attr_name).level().value
-            child_attr_val = getattr(child_attr, attr_name).level().value
-            if parent_attr_val > child_attr_val:
-                violations.append(
-                    StructuralViolation(
-                        rule="ComponentUpperBound",
-                        detail=f"{parent.name}.{attr_name} exceeds {child.name}.{attr_name}",
-                    )
+        source = graph.nodes[edge.source]
+        target = graph.nodes[edge.target]
+        if not are_opposite_node_types(source, target):
+            violations.append(
+                StructuralViolation(
+                    rule="BipartiteEndpoint",
+                    detail=(
+                        f"{edge.action}/{edge.name} connects non-bipartite endpoints: "
+                        f"{edge.source} -> {edge.target}"
+                    ),
                 )
+            )
 
     # Dependency upper-bound rule.
     for subject_name, object_names in system.dependencies.items():
@@ -189,10 +188,11 @@ def evaluate_propagation_risks(system: System) -> List[PropagationRisk]:
         source = graph.nodes[edge.source]
         target = graph.nodes[edge.target]
 
-        # Confidentiality propagation intuition.
-        if source.is_subject and (not target.is_subject):
-            s_attr = source.as_subject()
-            o_attr = target.as_object()
+        # Confidentiality propagation intuition across both edge directions.
+        subject, obj = _extract_subject_object(source, target)
+        if subject is not None:
+            s_attr = subject.as_subject()
+            o_attr = obj.as_object()
             if (
                 s_attr.credibility == Credibility.UNTRUSTED
                 and o_attr.confidentiality == Confidentiality.NON_CONFIDENTIAL
@@ -201,7 +201,7 @@ def evaluate_propagation_risks(system: System) -> List[PropagationRisk]:
                 risks.append(
                     PropagationRisk(
                         dimension="Confidentiality",
-                        detail=f"Potential exposure on edge {edge.name}: {source.name} -> {target.name}",
+                        detail=f"Potential exposure on edge {edge.action}/{edge.name}: {edge.source} -> {edge.target}",
                     )
                 )
 
@@ -210,7 +210,7 @@ def evaluate_propagation_risks(system: System) -> List[PropagationRisk]:
             risks.append(
                 PropagationRisk(
                     dimension="Availability",
-                    detail=f"Operation blocked by discontinuous edge {edge.name}",
+                        detail=f"Operation blocked by discontinuous edge {edge.action}/{edge.name}",
                 )
             )
 
@@ -239,15 +239,10 @@ def _parse_risk_string(risk: str) -> tuple[str, str]:
 
 
 def log_propagation_events(
-    system: System,
     execution_steps: List[ExecutionState],
     output_file: str = "output/propagation_log.txt",
 ) -> List[PropagationEvent]:
-    """Build propagation events from simulation states and optionally write a log file.
-
-    Note: The system parameter is kept for API compatibility.
-    """
-    del system
+    """Build propagation events from simulation states and optionally write a log file."""
 
     events: List[PropagationEvent] = []
     for step in execution_steps:
@@ -330,9 +325,9 @@ def _write_propagation_log(
                     f.write(f"    ... and {len(detail_events)-2} more occurrences\n")
             f.write("\n")
 
-            _write_section_header(f, "RISKS BY EXECUTION STAGE")
+        _write_section_header(f, "RISKS BY EXECUTION STAGE")
 
-        stage_order = ["Development", "Deployment", "Inference", "Response", "Feedback", "Structural"]
+        stage_order = ["Development", "Deployment", "Inference", "Response", "Feedback"]
         for stage in stage_order:
             if stage not in by_stage:
                 continue
@@ -370,6 +365,20 @@ def _write_all_execution_events(log_file, execution_steps: List[ExecutionState])
         log_file.write("No execution events recorded.\n")
         return
 
+    same_violations, same_risks = _all_steps_share_same_analysis(execution_steps)
+
+    if same_violations and execution_steps[0].violations:
+        _write_section_header(log_file, "SCENARIO-LEVEL STRUCTURAL FINDINGS")
+        for violation in execution_steps[0].violations:
+            log_file.write(f"- {violation}\n")
+        log_file.write("\n")
+
+    if same_risks and execution_steps[0].risks:
+        _write_section_header(log_file, "SCENARIO-LEVEL PROPAGATION RISKS")
+        for risk in execution_steps[0].risks:
+            log_file.write(f"- {risk}\n")
+        log_file.write("\n")
+
     for step in execution_steps:
         cycle_index = step.cycle_index
         log_file.write(
@@ -379,17 +388,23 @@ def _write_all_execution_events(log_file, execution_steps: List[ExecutionState])
 
         violations = step.violations
         if violations:
-            log_file.write("  Violations:\n")
-            for violation in violations:
-                log_file.write(f"    - {violation}\n")
+            if same_violations:
+                log_file.write("  Violations: see SCENARIO-LEVEL STRUCTURAL FINDINGS\n")
+            else:
+                log_file.write("  Violations:\n")
+                for violation in violations:
+                    log_file.write(f"    - {violation}\n")
         else:
             log_file.write("  Violations: none\n")
 
         risks = step.risks
         if risks:
-            log_file.write("  Risks:\n")
-            for risk in risks:
-                log_file.write(f"    - {risk}\n")
+            if same_risks:
+                log_file.write("  Risks: see SCENARIO-LEVEL PROPAGATION RISKS\n")
+            else:
+                log_file.write("  Risks:\n")
+                for risk in risks:
+                    log_file.write(f"    - {risk}\n")
         else:
             log_file.write("  Risks: none\n")
 

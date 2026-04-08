@@ -72,6 +72,7 @@ def main() -> None:
     print("=== ASPLOSER Framework ===")
     print(f"Scenario: {scenario_name}")
     print(f"Nodes: {len(system.graph.nodes)}")
+    print(f"Actions: {len(system.graph.actions)}")
     print(f"Edges: {len(system.graph.edges)}")
     model2 = project_system_to_model2(system)
     print(
@@ -103,20 +104,29 @@ def main() -> None:
         base_risk_strs=base_risk_strs,
     )
 
+    if base_violation_strs:
+        print("\nScenario-level structural findings:")
+        for violation in base_violation_strs:
+            print(f"  - {violation}")
+    else:
+        print("\nScenario-level structural findings: none")
+
+    if base_risk_strs:
+        print("Scenario-level propagation risks:")
+        for risk in base_risk_strs:
+            print(f"  - {risk}")
+    else:
+        print("Scenario-level propagation risks: none")
+
     for state in states:
         print(f"\n[{state.stage}] Step {state.step_index}: {state.action}")
-        
         if state.violations:
-            print("  Violations detected:")
-            for violation in state.violations:
-                print(f"    - {violation}")
+            print("  Structural findings: see scenario-level summary")
         else:
             print("  No structural violations")
-        
+
         if state.risks:
-            print("  Security risks detected:")
-            for risk in state.risks:
-                print(f"    - {risk}")
+            print("  Propagation risks: see scenario-level summary")
         else:
             print("  No propagation risks")
     
@@ -124,7 +134,6 @@ def main() -> None:
     print("\n" + "="*80)
     log_path = output_dir / f"{Path(scenario_name).stem if args.scenario else 'default'}_propagation_log.txt"
     propagation_events = log_propagation_events(
-        system,
         states,
         output_file=str(log_path),
     )

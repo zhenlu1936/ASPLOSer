@@ -2,6 +2,11 @@
 
 This document is the complete specification of the rewritten ASPLOSER model.
 
+Normative note:
+
+- This specification is authoritative for runtime naming and semantics.
+- Diagram files (`docs/model2.0.drawio`, `docs/model2.0.svg`) are visualization artifacts and may use different display labels.
+
 Model 2.0 uses a single-arc-type object-arc Petri net:
 
 - Round nodes are subjects.
@@ -110,16 +115,19 @@ The six subprocesses are:
 
 subjects := {
 
-- IntelligentSystem,
+- DataWorkers,
+- ModelDevelopers,
+- ModelHub,
+- Maintainers,
+- AppDevelopers,
+- AppHub,
+- DependencyDevelopers,
+- DependencyHub,
 - PreprocessingModule,
 - InferenceModule,
 - PostprocessingModule,
-- User,
-- ModelDeveloper,
-- AppDeveloper,
-- Maintainer,
-- DataWorker,
-- OperatingEnvironment
+- Users,
+- OutsideEnv
 
 }
 
@@ -127,51 +135,55 @@ subjects := {
 
 M := {
 
-- 1.Process,
-- 2.Train,
-- 3.Upload,
-- 4.Download
+- M0.Initialize,
+- M1.Collection,
+- M2.Process,
+- M3.Download,
+- M4.Train,
+- M5.Upload,
+- M6.Download
 
 }
 
 A := {
 
-- 5.Program,
-- 6.Upload,
-- 7.Download
+- A0.Initialize,
+- A1.Program,
+- A2.Upload,
+- A3.Download
 
 }
 
 P := {
 
-- 8.Download
+- P0.Initialize,
+- P1.Upload,
+- P2.Download
 
 }
 
 D := {
 
-- 9.Assemble
+- D0.Initialize,
+- D1.Delopy,
+- D2.Delopy,
+- D3.Delopy
 
 }
 
 O := {
 
-- 10.Propose,
-- 11.Pre-Process,
-- 12.Inference,
-- 13.Post-Process,
-- R1.Respond,
-- R2.Respond,
-- R3.Respond
+- O0.Initialize,
+- O1.Input,
+- O2.Preprocess,
+- O3.Infer,
+- O4.Postprocess
 
 }
 
 F := {
 
-- R4.Respond,
-- R5.Respond,
-- R6.Respond,
-- R7.Respond
+- F1.Feedback (instanced multiple times in the picture)
 
 }
 
@@ -189,15 +201,21 @@ All arcs below are object arcs (single arc type).
 
 arcs_M := {
 
-- (RawData, DataWorker, 1.Process),
-- (ProcessedData, 1.Process, ModelDeveloper),
-- (ProcessedData, ModelDeveloper, 2.Train),
-- (ModelPretrained, ModelDeveloper, 2.Train),
-- (ModelTrained, 2.Train, ModelDeveloper),
-- (ModelTrained, ModelDeveloper, 3.Upload),
-- (ModelHub, 3.Upload, Maintainer),
-- (ModelHub, Maintainer, 4.Download),
-- (Model, 4.Download, Maintainer)
+- (RawDataP, M0.Initialize, DataWorkers),
+- (ModelSpecP, M0.Initialize, ModelDevelopers),
+- (PretrainedModelDeclarationP, M0.Initialize, ModelHub),
+- (RawDataO, DataWorkers, M1.Collection),
+- (UnstructuredDataI, M1.Collection, DataWorkers),
+- (UnstructuredDataO, DataWorkers, M2.Process),
+- (ProcessedDataI, M2.Process, ModelDevelopers),
+- (PretrainedModelDownloadedI, ModelHub, M3.Download),
+- (PretrainedModelDownloadedO, M3.Download, ModelDevelopers),
+- (ModelMaterialO, ModelDevelopers, M4.Train),
+- (ModelToBeUploadI, M4.Train, ModelDevelopers),
+- (ModelToBeUploadO, ModelDevelopers, M5.Upload),
+- (ModelUploadedI, M5.Upload, ModelHub),
+- (ModelUploadedO, ModelHub, M6.Download),
+- (ModelDownloadedI, M6.Download, Maintainers)
 
 }
 
@@ -205,12 +223,13 @@ arcs_M := {
 
 arcs_A := {
 
-- (ProgramIntent, AppDeveloper, 5.Program),
-- (ApplicationProgrammed, 5.Program, AppDeveloper),
-- (ApplicationProgrammed, AppDeveloper, 6.Upload),
-- (AppHub, 6.Upload, Maintainer),
-- (AppHub, Maintainer, 7.Download),
-- (Application, 7.Download, Maintainer)
+- (AppSpecP, A0.Initialize, AppDevelopers),
+- (AppSpecO, AppDevelopers, A1.Program),
+- (AppProgrammedI, A1.Program, AppDevelopers),
+- (AppProgrammedO, AppDevelopers, A2.Upload),
+- (AppUploadedI, A2.Upload, AppHub),
+- (AppUploadedO, AppHub, A3.Download),
+- (AppDownloadedI, A3.Download, Maintainers)
 
 }
 
@@ -218,8 +237,12 @@ arcs_A := {
 
 arcs_P := {
 
-- (DependencyHub, Maintainer, 8.Download),
-- (Dependency, 8.Download, Maintainer)
+- (DependencyProgrammedP, P0.Initialize, DependencyDevelopers),
+- (DependencyProgrammedO, DependencyDevelopers, P1.Upload),
+- (DependenciesUploadedI, P1.Upload, DependencyHub),
+- (DependenciesUploadedO, DependencyHub, P2.Download),
+- (DependenciesDownloadedI, P2.Download, Maintainers),
+- (DependencyDeclarationI, A1.Program, DependencyHub)
 
 }
 
@@ -227,10 +250,13 @@ arcs_P := {
 
 arcs_D := {
 
-- (Model, Maintainer, 9.Assemble),
-- (Application, Maintainer, 9.Assemble),
-- (Dependency, Maintainer, 9.Assemble),
-- (IntelligentSystem, 9.Assemble, IntelligentSystem)
+- (OperatingEnvP, D0.Initialize, Maintainers),
+- (AppAndDepO, Maintainers, D1.Delopy),
+- (ModelAppAndDepO, Maintainers, D2.Delopy),
+- (AppAndDepO, Maintainers, D3.Delopy),
+- (AppAndDepI, D1.Delopy, PreprocessingModule),
+- (ModelAppAndDepI, D2.Delopy, InferenceModule),
+- (AppAndDepI, D3.Delopy, PostprocessingModule)
 
 }
 
@@ -238,20 +264,18 @@ arcs_D := {
 
 arcs_O := {
 
-- (UserIntent, User, 10.Propose),
-- (InputQuery, 10.Propose, PreprocessingModule),
-- (InputQuery, PreprocessingModule, 11.Pre-Process),
-- (InputToken, 11.Pre-Process, InferenceModule),
-- (InputToken, InferenceModule, 12.Inference),
-- (OutputToken, 12.Inference, PostprocessingModule),
-- (OutputToken, PostprocessingModule, 13.Post-Process),
-- (OutputMaterialized, 13.Post-Process, PostprocessingModule),
-- (OutputMaterialized, PostprocessingModule, R1.Respond),
-- (UserVisibleOutput, R1.Respond, User),
-- (OutputMaterialized, PostprocessingModule, R2.Respond),
-- (EnvVisibleOutput, R2.Respond, OperatingEnvironment),
-- (EnvObservation, OperatingEnvironment, R3.Respond),
-- (SystemFeedback, R3.Respond, IntelligentSystem)
+- (ProposalP, O0.Initialize, Users),
+- (ProposalMaterializedP, O0.Initialize, OutsideEnv),
+- (InputO, Users, O1.Input),
+- (InputMaterializedO, OutsideEnv, O1.Input),
+- (InputI, O1.Input, PreprocessingModule),
+- (InputTokensO, PreprocessingModule, O2.Preprocess),
+- (InputTokensI, O2.Preprocess, InferenceModule),
+- (OutputTokensO, InferenceModule, O3.Infer),
+- (OutputTokensI, O3.Infer, PostprocessingModule),
+- (OutputO, PostprocessingModule, O4.Postprocess),
+- (OutputI, O4.Postprocess, Users),
+- (OutputMaterializedI, O4.Postprocess, OutsideEnv)
 
 }
 
@@ -259,14 +283,11 @@ arcs_O := {
 
 arcs_F := {
 
-- (UserFeedbackToDataWorker, User, R4.Respond),
-- (DataWorkerFeedback, R4.Respond, DataWorker),
-- (UserFeedbackToModelDeveloper, User, R5.Respond),
-- (ModelDeveloperFeedback, R5.Respond, ModelDeveloper),
-- (UserFeedbackToAppDeveloper, User, R6.Respond),
-- (AppDeveloperFeedback, R6.Respond, AppDeveloper),
-- (UserFeedbackToMaintainer, User, R7.Respond),
-- (MaintainerFeedback, R7.Respond, Maintainer)
+- (OutputFeedbackO, Users, F1.Feedback),
+- (FeedbackI, F1.Feedback, ModelDevelopers),
+- (FeedbackI, F1.Feedback, AppDevelopers),
+- (FeedbackI, F1.Feedback, DependencyDevelopers),
+- (FeedbackI, F1.Feedback, Maintainers)
 
 }
 
@@ -290,10 +311,9 @@ $$
 
 ### 7.2 Core Inference Rules
 
-- IntelligentSystem <= Model, Application, Dependency
-- PreprocessingModule <= Application, Dependency
-- InferenceModule <= Model, Application, Dependency
-- PostprocessingModule <= Application, Dependency
+- PreprocessingModule <= AppAndDepI
+- InferenceModule <= ModelAppAndDepI
+- PostprocessingModule <= AppAndDepI
 
 Credibility is scenario-designated.
 
@@ -310,5 +330,6 @@ Credibility is scenario-designated.
 - Keep all endpoints bipartite between subject and action.
 - Do not add object nodes.
 - Do not add extra arc classes.
+- Static object-arc attribute assignment is allowed only in initialize actions; subsequent updates must follow firing semantics.
 
 This document is the authoritative Model 2.0 rewrite.

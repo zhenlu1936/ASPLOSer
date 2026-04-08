@@ -1,41 +1,37 @@
-# Scenario 4: Static Packaged Deployment Without Feedback Loop
+# Scenario 4: Emergency Offline Rollout
 
 ## Composition Note
 
 This document describes the composed runtime state after applying `scenario4.yaml` on top of the default system.
 
-Scenario 4 removes selected operation pairs to model static packaged deployment and reduced feedback routing.
+This scenario models an emergency packaged rollout where selected upload and feedback loops are intentionally suspended.
 
 ## Overview
 
-Scenario 4 keeps most baseline behavior but omits `6.Upload` and feedback responses `R4` to `R7`.
+Scenario 4 focuses on continuity under constrained operations, with reduced interaction pathways and selective deployment-edge continuity degradation.
 
 ### Node
 
 Overrides and inferred highlights:
 
-- User credibility: Trusted
-- Maintainer credibility: Trusted
-- OperatingEnvironment continuity: **MixedContinuity**
+- Maintainers credibility: Trusted
+- OutsideEnv credibility: Trusted
+- OutsideEnv continuity: **MixedContinuity**
+- Users credibility: Trusted
 
 ### Edge
 
-Omitted operation pairs:
-
-- 6.Upload
-- R4.Respond
-- R5.Respond
-- R6.Respond
-- R7.Respond
+- Omitted operation edge pairs: A2.Upload; F1.Feedback (Users -> OutputFeedbackO); F1.Feedback (FeedbackI -> ModelDevelopers); F1.Feedback (FeedbackI -> AppDevelopers); F1.Feedback (FeedbackI -> DependencyDevelopers); F1.Feedback (FeedbackI -> Maintainers)
 
 Key overridden edges:
 
-- 9.Assemble (Maintainer -> IntelligentSystem, Act): continuity **MixedContinuity**
-- R2.Respond (OutputMaterialized -> OperatingEnvironment, Respond): continuity **MixedContinuity**
-- R3.Respond (OperatingEnvironment -> IntelligentSystem, Respond): continuity **MixedContinuity**
+- D2.Delopy (ModelAppAndDepI -> InferenceModule): continuity **MixedContinuity**
+- O4.Postprocess (OutputMaterializedI -> OutsideEnv): continuity **MixedContinuity**
+- O1.Input (OutsideEnv -> InputMaterializedO): continuity **MixedContinuity**
 
 ## Usage
 
 ```bash
 python3 main.py --scenario scenario4.yaml --no-feedback --cycles 1
 ```
+
