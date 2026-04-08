@@ -201,6 +201,9 @@ class SecurityObjectives:
 class System:
     graph: SystemGraph
     dependencies: Dict[str, Set[str]]
+    assigned_actions: Set[str] = field(default_factory=set)
+    assigned_object_arcs: Set[str] = field(default_factory=set)
+    assigned_subjects: Set[str] = field(default_factory=set)
 
 
 @dataclass(frozen=True)
@@ -243,7 +246,7 @@ def _classify_stage(action_name: str) -> str:
     if token.startswith(("A", "P", "D")):
         return "Deployment"
     if token.startswith("O"):
-        return "Response" if action_name.startswith("O4.") else "Inference"
+        return "Operation"
     if token.startswith("F"):
         return "Feedback"
     return "Other"
@@ -259,8 +262,7 @@ def stage_sort_key(action_name: str) -> tuple[int, int]:
     stage_order = {
         "Development": 0,
         "Deployment": 1,
-        "Inference": 2,
-        "Response": 3,
+        "Operation": 2,
         "Feedback": 4,
         "Other": 5,
     }

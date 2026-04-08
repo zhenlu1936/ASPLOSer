@@ -15,30 +15,31 @@ Scenario 3 represents strong engineering competence and broad peer review, where
 Overrides and inferred highlights:
 
 - AppDevelopers credibility: Trusted
-- AppUploadedO confidentiality: **NonConfidential**
-- AppUploadedO correctness: Correct
 - DataWorkers credibility: Trusted
-- DependenciesUploadedO confidentiality: **NonConfidential**
-- DependenciesUploadedO correctness: Correct
 - Maintainers credibility: Trusted
-- ModelUploadedO confidentiality: **NonConfidential**
-- ModelUploadedO correctness: Correct
 - OutsideEnv credibility: **MixedCredibility**
 - OutsideEnv correctness: Correct
 - OutsideEnv continuity: **MixedContinuity**
+- A3.Download confidentiality: **NonConfidential**
+- A3.Download correctness: Correct
+- D2.Delopy continuity: **MixedContinuity**
+- M6.Download confidentiality: **NonConfidential**
+- M6.Download correctness: Correct
+- M6.Download continuity: Continuous
+- O4.Postprocess confidentiality: **NonConfidential**
+- O4.Postprocess correctness: Correct
+- O4.Postprocess continuity: Continuous
+- P2.Download confidentiality: **NonConfidential**
+- P2.Download correctness: Correct
+- P2.Download continuity: Continuous
 
 ### Edge
 
-Key overridden edges:
-
-- M6.Download (ModelDownloadedI -> Maintainers): confidentiality **NonConfidential**, correctness Correct, continuity Continuous
-- P2.Download (DependenciesDownloadedI -> Maintainers): confidentiality **NonConfidential**, correctness Correct, continuity Continuous
-- D2.Delopy (ModelAppAndDepI -> InferenceModule): continuity **MixedContinuity**
-- O4.Postprocess (OutputI -> Users): confidentiality **NonConfidential**, correctness Correct, continuity Continuous
+No edge overrides.
 
 ## Usage
 
 ```bash
-python3 main.py --scenario docs/scenarios/experienced-independent-developers-and-large-opensource-community.yaml --no-feedback --cycles 1
+python3 main.py --scenario scripts/scenarios/experienced-independent-developers-and-large-opensource-community.yaml --no-feedback --cycles 1
 ```
 

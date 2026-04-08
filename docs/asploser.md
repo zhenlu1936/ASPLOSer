@@ -5,7 +5,8 @@ This document is the complete specification of the rewritten ASPLOSER model.
 Normative note:
 
 - This specification is authoritative for runtime naming and semantics.
-- Diagram files (`docs/model2.0.drawio`, `docs/model2.0.svg`) are visualization artifacts and may use different display labels.
+- The maintained template diagram files are `docs/model.drawio` and derived exports under `output/`.
+- Visualization files may use display labels that differ from runtime identifiers, but they must preserve Model 2.0 semantics.
 
 Model 2.0 uses a single-arc-type object-arc Petri net:
 
@@ -323,7 +324,20 @@ Credibility is scenario-designated.
 - Integrity objective: minimum correctness level across executed object arcs and participating subjects.
 - Availability objective: minimum continuity level across required executed object arcs.
 
-## 9. Normative Modeling Rules
+## 9. Visualization And Reporting Rules
+
+- The renderer colors propagated high risk in red and propagated medium risk in yellow.
+- Explicitly assigned initialize-time risk remains visually distinct from propagated risk:
+	- assigned high risk uses purple
+	- assigned medium risk uses blue
+- Initialize actions are entry points and are always rendered in green.
+- Initialize-created objects are not treated as green visualization nodes; they follow the normal assigned or propagated risk palette.
+- Subject coloring follows the same severity ordering, but assigned subjects keep assigned colors only at their assigned baseline. If a connected propagated state raises an assigned subject to high severity, the subject is rendered with propagated red.
+- Subject-driven recoloring is directional: only outgoing arcs from inferred module subjects inherit propagated subject state.
+- Feedback actions are part of the model, but propagation analysis summaries and execution logs stop before the Feedback stage when feedback execution is disabled.
+- Runtime stages are ordered as Development, Deployment, Operation, then Feedback.
+
+## 10. Normative Modeling Rules
 
 - Use only subject nodes and action nodes.
 - Use only object arcs.

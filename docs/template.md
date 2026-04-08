@@ -21,5 +21,5 @@ $EDGE_SECTION
 ## Usage
 
 ```bash
-python3 main.py --scenario $SCENARIO_FILE --no-feedback --cycles 1
+python3 main.py --scenario scripts/scenarios/$SCENARIO_FILE --no-feedback --cycles 1
 ```

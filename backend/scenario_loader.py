@@ -106,65 +106,111 @@ def _update_node_attributes(node: Node, attrs: dict[str, Any]) -> Node:
         return replace(node, object_attributes=updated)
 
 
-def _apply_node_overrides(graph, node_overrides: list[dict[str, Any]]) -> None:
-    for node_patch in node_overrides:
+def _apply_subject_overrides(graph, subject_overrides: list[dict[str, Any]]) -> None:
+    for node_patch in subject_overrides:
         name = node_patch.get("name")
         if not name or name not in graph.nodes:
-            raise ValueError(f"node_overrides entry references unknown node: {name}")
+            raise ValueError(f"subject_overrides entry references unknown node: {name}")
+        if not graph.nodes[name].is_subject:
+            raise ValueError(f"subject_overrides entry must reference a subject node: {name}")
         attrs = node_patch.get("attributes", {})
         graph.nodes[name] = _update_node_attributes(graph.nodes[name], attrs)
 
 
-def _apply_default_edge_attributes(graph, raw_attrs: dict[str, Any] | None) -> None:
-    if not raw_attrs:
-        return
-    default_attrs = _merge_edge_attributes(graph.edges[0].attributes, raw_attrs)
-    graph.edges = [replace(edge, attributes=default_attrs) for edge in graph.edges]
+def _apply_action_overrides(graph, action_overrides: list[dict[str, Any]]) -> None:
+    for action_patch in action_overrides:
+        name = action_patch.get("name")
+        if not name or name not in graph.actions:
+            raise ValueError(f"action_overrides entry references unknown action: {name}")
+
+        updates = action_patch.get("attributes", {})
+        matched = False
+        for idx, edge in enumerate(graph.edges):
+            if edge.action != name:
+                continue
+            graph.edges[idx] = replace(edge, attributes=_merge_edge_attributes(edge.attributes, updates))
+            matched = True
+
+        if not matched:
+            raise ValueError(f"action_overrides entry did not match any object-arc: {name}")
 
 
-def _edge_matches_patch(edge, source, target, name, parsed_edge_type) -> bool:
-    if source is not None and edge.source != source:
+def _edge_matches_init_override(edge, source, target, name) -> bool:
+    """Match edge for object_initialization_overrides: source=action, target=subject, name=object."""
+    if source is not None and edge.action != source:
         return False
     if target is not None and edge.target != target:
         return False
-    if name is not None and edge.action != name:
-        return False
-    if parsed_edge_type is not None and edge.type != parsed_edge_type:
+    if name is not None and edge.name != name:
         return False
     return True
 
 
-def _apply_initialize_edge_overrides(graph, edge_overrides: list[dict[str, Any]]) -> None:
-    for edge_patch in edge_overrides:
-        source = edge_patch.get("source")
-        target = edge_patch.get("target")
-        name = edge_patch.get("name")
-        edge_type = edge_patch.get("type")
-        parsed_edge_type = _parse_enum_value(EdgeType, edge_type) if edge_type is not None else None
-        updates = edge_patch.get("attributes", {})
+def _edge_key(edge) -> str:
+    return f"{edge.action}/{edge.name}"
+
+
+def _collect_assigned_sets(system: System, payload: dict[str, Any]) -> tuple[set[str], set[str], set[str]]:
+    """Return (assigned_actions, assigned_object_arcs, assigned_subjects).
+
+    assigned_actions: action names from action_overrides or object_initialization_overrides.
+    assigned_object_arcs: arc keys from object_initialization_overrides only.
+    assigned_subjects: subject names from subject_overrides.
+    """
+    graph = system.graph
+    actions: set[str] = set()
+    arcs: set[str] = set()
+    subjects: set[str] = set()
+
+    for entry in payload.get("subject_overrides", []):
+        name = entry.get("name")
+        if name:
+            subjects.add(name)
+
+    for entry in payload.get("object_initialization_overrides", []):
+        source = entry.get("source")  # action name
+        target = entry.get("target")  # subject name
+        name = entry.get("name")      # object name (ends with 'P')
+
+        for edge in graph.edges:
+            if _edge_matches_init_override(edge, source, target, name):
+                arcs.add(_edge_key(edge))
+                actions.add(edge.action)
+
+    for action_patch in payload.get("action_overrides", []):
+        action_name = action_patch.get("name")
+        if action_name:
+            actions.add(action_name)
+
+    return actions, arcs, subjects
+
+
+def _apply_object_initialization_overrides(graph, object_initialization_overrides: list[dict[str, Any]]) -> None:
+    for entry in object_initialization_overrides:
+        source = entry.get("source")  # action name
+        target = entry.get("target")  # subject name
+        name = entry.get("name")      # object name (must end with 'P')
+
+        if not name or not name.endswith("P"):
+            raise ValueError(
+                "object_initialization_overrides entry must reference an initialization "
+                f"object (name ending with 'P'): {name}"
+            )
+
+        updates = entry.get("attributes", {})
 
         matched = False
         for idx, edge in enumerate(graph.edges):
-            if not _edge_matches_patch(edge, source, target, name, parsed_edge_type):
+            if not _edge_matches_init_override(edge, source, target, name):
                 continue
             graph.edges[idx] = replace(edge, attributes=_merge_edge_attributes(edge.attributes, updates))
             matched = True
 
         if not matched:
             raise ValueError(
-                "initialize_edge_overrides entry did not match any edge: "
-                f"source={source}, target={target}, name={name}, type={edge_type}"
+                "object_initialization_overrides entry did not match any edge: "
+                f"source={source}, target={target}, name={name}"
             )
-
-
-def _apply_dependency_overrides(system: System, dep_overrides: dict[str, Any] | None) -> None:
-    if not dep_overrides:
-        return
-    graph = system.graph
-    for subject_name, object_names in dep_overrides.items():
-        if subject_name not in graph.nodes:
-            raise ValueError(f"dependency_overrides references unknown node: {subject_name}")
-        system.dependencies[subject_name] = set(object_names)
 
 
 def remove_edge_pairs(system: System, removals: list[dict[str, Any]]) -> System:
@@ -220,20 +266,40 @@ def remove_edge_pairs(system: System, removals: list[dict[str, Any]]) -> System:
 def _apply_yaml_overrides(system: System, payload: dict[str, Any]) -> System:
     graph = system.graph
 
-    if "edge_default_attributes" in payload or "edge_overrides" in payload:
+    allowed_keys = {
+        "base",
+        "name",
+        "doc_metadata",
+        "subject_overrides",
+        "action_overrides",
+        "object_initialization_overrides",
+    }
+    unknown_keys = [key for key in payload.keys() if key not in allowed_keys]
+    if unknown_keys:
         raise ValueError(
-            "Legacy edge override keys are not supported. "
-            "Use initialize_edge_default_attributes and initialize_edge_overrides."
+            "Unsupported scenario keys: "
+            + ", ".join(sorted(unknown_keys))
+            + ". Allowed keys are subject_overrides, action_overrides, object_initialization_overrides."
         )
 
-    _apply_node_overrides(graph, payload.get("node_overrides", []))
-    _apply_default_edge_attributes(graph, payload.get("initialize_edge_default_attributes"))
+    if (
+        "subject_overrides" not in payload
+        and "action_overrides" not in payload
+        and "object_initialization_overrides" not in payload
+    ):
+        raise ValueError(
+            "Scenario must provide at least one of: subject_overrides, action_overrides, object_initialization_overrides."
+        )
 
-    edge_pair_omissions = payload.get("edge_pair_omissions", [])
-    remove_edge_pairs(system, edge_pair_omissions)
+    _apply_subject_overrides(graph, payload.get("subject_overrides", []))
+    _apply_action_overrides(graph, payload.get("action_overrides", []))
+    _apply_object_initialization_overrides(
+        graph,
+        payload.get("object_initialization_overrides", []),
+    )
 
-    _apply_initialize_edge_overrides(graph, payload.get("initialize_edge_overrides", []))
-    _apply_dependency_overrides(system, payload.get("dependency_overrides"))
+    # Track explicitly assigned actions and object-arcs for visualization origin labeling.
+    system.assigned_actions, system.assigned_object_arcs, system.assigned_subjects = _collect_assigned_sets(system, payload)
 
     # Always infer these subject attributes from dependencies, even if user overrides exist.
     infer_subject_attributes_from_assets(system)
@@ -264,13 +330,13 @@ def _load_yaml_scenario(path: Path) -> System:
 
 
 def _resolve_scenario_path(filepath: str) -> Path:
-    """Resolve scenario path using direct path, docs/scenarios, then docs."""
+    """Resolve scenario path using direct path, scripts/scenarios, then docs."""
     path = Path(filepath)
     if path.exists():
         return path
 
     candidate_paths = [
-        Path("docs") / "scenarios" / filepath,
+        Path("scripts") / "scenarios" / filepath,
         Path("docs") / filepath,
     ]
     for candidate in candidate_paths:
@@ -287,7 +353,7 @@ def load_scenario_from_file(filepath: str) -> System:
     - .yaml/.yml: override-based scenario definitions on top of default system
     - .md: currently falls back to default system
     
-    Searches in: current directory, docs/scenarios/, and docs/.
+    Searches in: current directory, scripts/scenarios/, and docs/.
     """
     path = _resolve_scenario_path(filepath)
 
@@ -301,7 +367,7 @@ def load_scenario_from_file(filepath: str) -> System:
 
 
 def get_available_scenarios() -> list[str]:
-    """List available scenario files in the framework and docs/scenarios directory."""
+    """List available scenario files in the framework and scripts/scenarios directory."""
     framework_dir = Path(__file__).parent.parent
 
     def _collect_scenarios(directory: Path) -> list[str]:
@@ -319,7 +385,7 @@ def get_available_scenarios() -> list[str]:
         return names
 
     scenarios = _collect_scenarios(framework_dir)
-    scenarios.extend(_collect_scenarios(framework_dir / "docs" / "scenarios"))
+    scenarios.extend(_collect_scenarios(framework_dir / "scripts" / "scenarios"))
     scenarios.extend(_collect_scenarios(framework_dir / "docs"))
 
     return sorted(set(scenarios))

@@ -22,18 +22,17 @@ Overrides and inferred highlights:
 - PostprocessingModule credibility: Trusted
 - PreprocessingModule credibility: Trusted
 - Users credibility: Trusted
+- D2.Delopy continuity: **MixedContinuity**
+- O1.Input continuity: **MixedContinuity**
+- O4.Postprocess continuity: **MixedContinuity**
 
 ### Edge
 
-Key overridden edges:
-
-- D2.Delopy (ModelAppAndDepI -> InferenceModule): continuity **MixedContinuity**
-- O1.Input (Users -> InputO): continuity **MixedContinuity**
-- O4.Postprocess (OutputI -> Users): continuity **MixedContinuity**
+No edge overrides.
 
 ## Usage
 
 ```bash
-python3 main.py --scenario docs/scenarios/corporations.yaml --no-feedback --cycles 1
+python3 main.py --scenario scripts/scenarios/corporations.yaml --no-feedback --cycles 1
 ```
 

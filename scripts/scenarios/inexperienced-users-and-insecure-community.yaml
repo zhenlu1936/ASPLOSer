@@ -10,7 +10,7 @@ doc_metadata:
 # Inexperienced users interact with a system sustained by an insecure community supply chain.
 # Contributor trust and operational continuity are degraded compared with controlled enterprise settings.
 
-node_overrides:
+subject_overrides:
   - name: PreprocessingModule
     attributes:
       credibility: MixedCredibility
@@ -31,47 +31,31 @@ node_overrides:
       credibility: Untrusted
       correctness: MixedCorrectness
       continuity: Discontinuous
-  - name: ModelUploadedO
+
+action_overrides:
+  - name: M6.Download
+    attributes:
+      confidentiality: NonConfidential
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+  - name: A3.Download
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
       continuity: MixedContinuity
-  - name: AppUploadedO
+  - name: P2.Download
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
-      continuity: MixedContinuity
-  - name: DependenciesUploadedO
+      continuity: Discontinuous
+  - name: D2.Delopy
+    attributes:
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+  - name: O4.Postprocess
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
       continuity: MixedContinuity
 
-initialize_edge_overrides:
-  - source: ModelDownloadedI
-    target: Maintainers
-    name: M6.Download
-    attributes:
-      confidentiality: NonConfidential
-      correctness: MixedCorrectness
-      continuity: Discontinuous
-  - source: DependenciesDownloadedI
-    target: Maintainers
-    name: P2.Download
-    attributes:
-      confidentiality: NonConfidential
-      correctness: MixedCorrectness
-      continuity: Discontinuous
-  - source: ModelAppAndDepI
-    target: InferenceModule
-    name: D2.Delopy
-    attributes:
-      correctness: MixedCorrectness
-      continuity: Discontinuous
-  - source: OutputI
-    target: Users
-    name: O4.Postprocess
-    attributes:
-      confidentiality: NonConfidential
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
+object_initialization_overrides: []

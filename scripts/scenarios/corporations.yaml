@@ -10,7 +10,7 @@ doc_metadata:
 # A corporation-operated assistant in managed enterprise infrastructure.
 # Internal actors are trusted with controlled delivery, but runtime continuity can still be mixed.
 
-node_overrides:
+subject_overrides:
   - name: PreprocessingModule
     attributes:
       credibility: Trusted
@@ -34,19 +34,15 @@ node_overrides:
       credibility: Trusted
       continuity: MixedContinuity
 
-initialize_edge_overrides:
-  - source: ModelAppAndDepI
-    target: InferenceModule
-    name: D2.Delopy
+action_overrides:
+  - name: D2.Delopy
     attributes:
       continuity: MixedContinuity
-  - source: Users
-    target: InputO
-    name: O1.Input
+  - name: O1.Input
     attributes:
       continuity: MixedContinuity
-  - source: OutputI
-    target: Users
-    name: O4.Postprocess
+  - name: O4.Postprocess
     attributes:
       continuity: MixedContinuity
+
+object_initialization_overrides: []

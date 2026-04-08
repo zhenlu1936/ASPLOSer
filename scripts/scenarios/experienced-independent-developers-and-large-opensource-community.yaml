@@ -10,7 +10,7 @@ doc_metadata:
 # Experienced independent developers collaborate with large open-source communities.
 # Public artifacts are broadly visible, but reliability and delivery discipline are high.
 
-node_overrides:
+subject_overrides:
   - name: DataWorkers
     attributes:
       credibility: Trusted
@@ -25,44 +25,29 @@ node_overrides:
       credibility: MixedCredibility
       correctness: Correct
       continuity: MixedContinuity
-  - name: ModelUploadedO
+
+action_overrides:
+  - name: M6.Download
     attributes:
       confidentiality: NonConfidential
       correctness: Correct
-  - name: AppUploadedO
+      continuity: Continuous
+  - name: A3.Download
     attributes:
       confidentiality: NonConfidential
       correctness: Correct
-  - name: DependenciesUploadedO
+  - name: P2.Download
+    attributes:
+      confidentiality: NonConfidential
+      correctness: Correct
+      continuity: Continuous
+  - name: D2.Delopy
+    attributes:
+      continuity: MixedContinuity
+  - name: O4.Postprocess
     attributes:
       confidentiality: NonConfidential
       correctness: Correct
       continuity: Continuous
 
-initialize_edge_overrides:
-  - source: ModelDownloadedI
-    target: Maintainers
-    name: M6.Download
-    attributes:
-      confidentiality: NonConfidential
-      correctness: Correct
-      continuity: Continuous
-  - source: DependenciesDownloadedI
-    target: Maintainers
-    name: P2.Download
-    attributes:
-      confidentiality: NonConfidential
-      correctness: Correct
-      continuity: Continuous
-  - source: ModelAppAndDepI
-    target: InferenceModule
-    name: D2.Delopy
-    attributes:
-      continuity: MixedContinuity
-  - source: OutputI
-    target: Users
-    name: O4.Postprocess
-    attributes:
-      confidentiality: NonConfidential
-      correctness: Correct
-      continuity: Continuous
+object_initialization_overrides: []

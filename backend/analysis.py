@@ -156,16 +156,14 @@ def _build_availability_risk(edge, severity: str) -> PropagationRisk:
 
 def _is_high_confidentiality_risk(s_attr, o_attr, edge) -> bool:
     return (
-        s_attr.credibility == Credibility.UNTRUSTED
-        and o_attr.confidentiality == Confidentiality.NON_CONFIDENTIAL
-        and edge.attributes.confidentiality == Confidentiality.NON_CONFIDENTIAL
+        edge.attributes.confidentiality == Confidentiality.NON_CONFIDENTIAL
+        or o_attr.confidentiality == Confidentiality.NON_CONFIDENTIAL
     )
 
 
 def _is_mixed_confidentiality_risk(s_attr, o_attr, edge) -> bool:
     return (
-        s_attr.credibility == Credibility.MIXED_CREDIBILITY
-        or o_attr.confidentiality == Confidentiality.MIXED_CONFIDENTIALITY
+        o_attr.confidentiality == Confidentiality.MIXED_CONFIDENTIALITY
         or edge.attributes.confidentiality == Confidentiality.MIXED_CONFIDENTIALITY
     )
 
@@ -199,7 +197,6 @@ def _is_mixed_availability_risk(s_attr, o_attr, edge) -> bool:
         s_attr.continuity == Continuity.MIXED_CONTINUITY
         or o_attr.continuity == Continuity.MIXED_CONTINUITY
         or edge.attributes.continuity == Continuity.MIXED_CONTINUITY
-        or s_attr.credibility == Credibility.MIXED_CREDIBILITY
     )
 
 
@@ -364,8 +361,9 @@ def log_propagation_events(
 ) -> List[PropagationEvent]:
     """Build propagation events from simulation states and optionally write a log file."""
 
+    analysis_steps = [step for step in execution_steps if step.stage != "Feedback"]
     events: List[PropagationEvent] = []
-    for step in execution_steps:
+    for step in analysis_steps:
         for risk in getattr(step, "risks", []):
             dimension, severity, detail = _parse_risk_string(risk)
             events.append(
@@ -381,7 +379,7 @@ def log_propagation_events(
             )
 
     if output_file:
-        _write_propagation_log(events, execution_steps, output_file)
+        _write_propagation_log(events, analysis_steps, output_file)
 
     return events
 
@@ -453,7 +451,7 @@ def _write_propagation_log(
 
         _write_section_header(f, "RISKS BY EXECUTION STAGE")
 
-        stage_order = ["Development", "Deployment", "Inference", "Response", "Feedback"]
+        stage_order = ["Development", "Deployment", "Operation"]
         for stage in stage_order:
             if stage not in by_stage:
                 continue

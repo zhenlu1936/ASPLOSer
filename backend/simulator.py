@@ -184,8 +184,7 @@ def run_cpn_cycles(
     stage_actions: Dict[str, List[str]] = {
         "Development": [],
         "Deployment": [],
-        "Inference": [],
-        "Response": [],
+        "Operation": [],
         "Feedback": [],
     }
 
@@ -199,8 +198,7 @@ def run_cpn_cycles(
     stages: Dict[str, List] = {
         "Development": [],
         "Deployment": [],
-        "Inference": [],
-        "Response": [],
+        "Operation": [],
         "Feedback": [],
     }
 
@@ -290,8 +288,7 @@ def run_cpn_cycles(
     for cycle in range(1, development_cycles + 1):
         _process_stage(cycle, "Development", stages["Development"])
         _process_stage(cycle, "Deployment", stages["Deployment"])
-        _process_stage(cycle, "Inference", stages["Inference"])
-        _process_stage(cycle, "Response", stages["Response"])
+        _process_stage(cycle, "Operation", stages["Operation"])
         if feedback:
             _process_stage(cycle, "Feedback", stages["Feedback"])
 

@@ -13,9 +13,8 @@ from .scenario_loader import get_available_scenarios, load_scenario_from_file, r
 from .simulator import run_cpn_cycles
 from .visualization import (
     export_drawio_xml_to_png,
-    export_holistic_picture,
-    export_holistic_picture_drawio,
     export_reference_model_png,
+    export_template_propagation_drawio_per_dimension,
     export_template_propagation_drawio_per_stage,
     export_template_propagation_drawio,
 )
@@ -33,10 +32,9 @@ __all__ = [
     "log_propagation_events",
     "print_propagation_summary",
     "PropagationEvent",
-    "export_holistic_picture",
-    "export_holistic_picture_drawio",
     "export_drawio_xml_to_png",
     "export_reference_model_png",
+    "export_template_propagation_drawio_per_dimension",
     "export_template_propagation_drawio_per_stage",
     "export_template_propagation_drawio",
 ]
