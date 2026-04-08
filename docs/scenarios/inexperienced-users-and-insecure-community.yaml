@@ -1,0 +1,77 @@
+base: default
+name: model2-s2-inexperienced-users-insecure-community
+
+doc_metadata:
+  title: "Scenario 2: Inexperienced Users And Insecure Community"
+  composition_note: "This scenario models an assistant exposed to inexperienced users and loosely governed community contributions with weak security hygiene."
+  overview: "Scenario 2 emphasizes reduced trust, weaker artifact assurance, and discontinuous operations that can amplify confidentiality, correctness, and availability risks."
+
+# Real-world profile:
+# Inexperienced users interact with a system sustained by an insecure community supply chain.
+# Contributor trust and operational continuity are degraded compared with controlled enterprise settings.
+
+node_overrides:
+  - name: PreprocessingModule
+    attributes:
+      credibility: MixedCredibility
+  - name: PostprocessingModule
+    attributes:
+      credibility: MixedCredibility
+  - name: Users
+    attributes:
+      credibility: MixedCredibility
+      correctness: MixedCorrectness
+  - name: Maintainers
+    attributes:
+      credibility: MixedCredibility
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+  - name: OutsideEnv
+    attributes:
+      credibility: Untrusted
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+  - name: ModelUploadedO
+    attributes:
+      confidentiality: NonConfidential
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+  - name: AppUploadedO
+    attributes:
+      confidentiality: NonConfidential
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+  - name: DependenciesUploadedO
+    attributes:
+      confidentiality: NonConfidential
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+
+initialize_edge_overrides:
+  - source: ModelDownloadedI
+    target: Maintainers
+    name: M6.Download
+    attributes:
+      confidentiality: NonConfidential
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+  - source: DependenciesDownloadedI
+    target: Maintainers
+    name: P2.Download
+    attributes:
+      confidentiality: NonConfidential
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+  - source: ModelAppAndDepI
+    target: InferenceModule
+    name: D2.Delopy
+    attributes:
+      correctness: MixedCorrectness
+      continuity: Discontinuous
+  - source: OutputI
+    target: Users
+    name: O4.Postprocess
+    attributes:
+      confidentiality: NonConfidential
+      correctness: MixedCorrectness
+      continuity: MixedContinuity

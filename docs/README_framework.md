@@ -36,10 +36,18 @@ ASPLOSER is a runnable framework for analyzing AI system security propagation us
 
 ```bash
 python3 main.py --list-scenarios
-python3 main.py --scenario scenario1.yaml --no-feedback --cycles 1
-python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1
-python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1 --export-picture
+python3 main.py --scenario docs/scenarios/corporations.yaml --no-feedback --cycles 1
+python3 main.py --scenario docs/scenarios/inexperienced-users-and-insecure-community.yaml --no-feedback --cycles 1
+python3 main.py --scenario docs/scenarios/experienced-independent-developers-and-large-opensource-community.yaml --no-feedback --cycles 1 --export-picture
+python3 main.py --scenario docs/scenarios/log4shell-dependency-exploit-wave.yaml --no-feedback --cycles 1 --export-drawio
+python3 main.py --scenario docs/scenarios/corporations.yaml --cycles 2 --export-drawio-per-stage
+python3 main.py --export-model-png
+python3 main.py --scenario docs/scenarios/corporations.yaml --no-feedback --cycles 1 --export-drawio --export-png
 ```
+
+PNG export note:
+
+- XML-to-PNG export requires draw.io CLI in PATH (`drawio`, `draw.io`, or `diagrams`).
 
 ## Scenario Override Schema
 
@@ -77,9 +85,25 @@ Initialize rule:
 
 ## Output Artifacts
 
-- propagation log: `output/<scenario>_propagation_log.txt`
+- propagation log: `output/<scenario>_log.txt`
 - diagram markdown: `output/<scenario>_pic.md`
 - diagram image: `output/<scenario>_pic.svg`
+- diagram draw.io: `output/<scenario>_pic.drawio`
+- per-cycle stage draw.io set (6 files each cycle):
+  - `output/<scenario>_pic_cycle<k>_stage0_initial.drawio`
+  - `output/<scenario>_pic_cycle<k>_stage1_development.drawio`
+  - `output/<scenario>_pic_cycle<k>_stage2_deployment.drawio`
+  - `output/<scenario>_pic_cycle<k>_stage3_inference.drawio`
+  - `output/<scenario>_pic_cycle<k>_stage4_response.drawio`
+  - `output/<scenario>_pic_cycle<k>_stage5_feedback.drawio`
+- diagram PNG from scenario draw.io: `output/<scenario>_pic.png`
+- diagram PNG from provided model XML: `output/model.png`
+
+Per-stage draw.io export note:
+
+- Use `--export-drawio-per-stage` to generate six draw.io files for each cycle.
+- Optional argument sets output directory, for example:
+  - `python3 main.py --scenario docs/scenarios/corporations.yaml --cycles 1 --export-drawio-per-stage output`
 
 ## Extension Guidance
 

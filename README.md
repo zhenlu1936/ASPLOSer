@@ -19,7 +19,7 @@ It includes:
 
 - `main.py`: CLI entrypoint
 - `backend/`: core framework implementation
-- `scenario*.yaml`: predefined scenarios
+- `docs/scenarios/*.yaml`: predefined scenarios
 - `docs/`: framework and scenario documentation
 - `output/`: generated logs and diagram artifacts
 
@@ -27,15 +27,16 @@ It includes:
 
 ```bash
 python3 main.py --list-scenarios
-python3 main.py --scenario scenario1.yaml --no-feedback --cycles 1
-python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1 --export-picture
+python3 main.py --scenario docs/scenarios/corporations.yaml --no-feedback --cycles 1
+python3 main.py --scenario docs/scenarios/experienced-independent-developers-and-large-opensource-community.yaml --no-feedback --cycles 1 --export-picture
+python3 main.py --scenario docs/scenarios/corporations.yaml --cycles 2 --export-drawio-per-stage
 ```
 
 ## Documentation
 
 - Framework overview: `docs/README_framework.md`
 - Detailed model and rationale: `docs/asploser.md`
-- Scenario guides: `docs/scenario1.md` to `docs/scenario5.md`
+- Scenario guides: `docs/scenarios/corporations.md`, `docs/scenarios/inexperienced-users-and-insecure-community.md`, `docs/scenarios/experienced-independent-developers-and-large-opensource-community.md`, `docs/scenarios/solarwinds-orion-supply-chain-compromise.md`, `docs/scenarios/log4shell-dependency-exploit-wave.md`
 
 ## License
 

@@ -1,0 +1,68 @@
+base: default
+name: model2-s3-experienced-indie-and-large-oss
+
+doc_metadata:
+  title: "Scenario 3: Experienced Independent Developers And Large Open Source Community"
+  composition_note: "This scenario models a mature open ecosystem led by experienced independent developers and supported by large open-source communities."
+  overview: "Scenario 3 represents strong engineering competence and broad peer review, where correctness and continuity remain high while confidentiality is intentionally lower for public artifacts."
+
+# Real-world profile:
+# Experienced independent developers collaborate with large open-source communities.
+# Public artifacts are broadly visible, but reliability and delivery discipline are high.
+
+node_overrides:
+  - name: DataWorkers
+    attributes:
+      credibility: Trusted
+  - name: AppDevelopers
+    attributes:
+      credibility: Trusted
+  - name: Maintainers
+    attributes:
+      credibility: Trusted
+  - name: OutsideEnv
+    attributes:
+      credibility: MixedCredibility
+      correctness: Correct
+      continuity: MixedContinuity
+  - name: ModelUploadedO
+    attributes:
+      confidentiality: NonConfidential
+      correctness: Correct
+  - name: AppUploadedO
+    attributes:
+      confidentiality: NonConfidential
+      correctness: Correct
+  - name: DependenciesUploadedO
+    attributes:
+      confidentiality: NonConfidential
+      correctness: Correct
+      continuity: Continuous
+
+initialize_edge_overrides:
+  - source: ModelDownloadedI
+    target: Maintainers
+    name: M6.Download
+    attributes:
+      confidentiality: NonConfidential
+      correctness: Correct
+      continuity: Continuous
+  - source: DependenciesDownloadedI
+    target: Maintainers
+    name: P2.Download
+    attributes:
+      confidentiality: NonConfidential
+      correctness: Correct
+      continuity: Continuous
+  - source: ModelAppAndDepI
+    target: InferenceModule
+    name: D2.Delopy
+    attributes:
+      continuity: MixedContinuity
+  - source: OutputI
+    target: Users
+    name: O4.Postprocess
+    attributes:
+      confidentiality: NonConfidential
+      correctness: Correct
+      continuity: Continuous

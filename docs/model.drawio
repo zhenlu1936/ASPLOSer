@@ -267,9 +267,6 @@
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-82" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="We do not consider the process of dependency development. We do not consider all processes that take place before &#39;P&#39; arcs" vertex="1">
-          <mxGeometry height="30" width="190" x="1205" y="340" as="geometry" />
-        </mxCell>
         <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-83" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;D1. Delopy&lt;/span&gt;" vertex="1">
           <mxGeometry height="40" width="120" x="560" y="920" as="geometry" />
         </mxCell>
@@ -332,9 +329,6 @@
           <mxGeometry relative="1" x="0.3443" y="-1" as="geometry">
             <mxPoint x="1" y="-7" as="offset" />
           </mxGeometry>
-        </mxCell>
-        <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-107" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="The whole system can be expressed in a way like &#39;bala = balabala(RawData, AppSpec, DependencyProgrammed)" vertex="1">
-          <mxGeometry height="30" width="240" x="720" y="290" as="geometry" />
         </mxCell>
         <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-108" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="M0. Initialize" vertex="1">
           <mxGeometry height="40" width="120" x="360" y="120" as="geometry" />
@@ -551,9 +545,6 @@
             <mxPoint x="17" y="-11" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-149" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="For simplicity, we do not consider all feedbacks inside the three development process" vertex="1">
-          <mxGeometry height="30" width="260" x="1060" y="1250" as="geometry" />
-        </mxCell>
         <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-151" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Outside Env" vertex="1">
           <mxGeometry height="40" width="120" x="800" y="1160" as="geometry" />
         </mxCell>
@@ -578,9 +569,6 @@
           <mxGeometry relative="1" x="0.2284" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
-        </mxCell>
-        <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-154" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Consider a scenario where an agent is operating solely according to its operating environment after users&#39; initial prompt." vertex="1">
-          <mxGeometry height="30" width="260" x="350" y="1220" as="geometry" />
         </mxCell>
         <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-164" edge="1" parent="1" source="GDlz4WF2aqS5Z2Ir6jsj-169" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="GDlz4WF2aqS5Z2Ir6jsj-118" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
@@ -688,9 +676,6 @@
           <mxGeometry relative="1" x="-0.5212" y="2" as="geometry">
             <mxPoint x="32" as="offset" />
           </mxGeometry>
-        </mxCell>
-        <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-196" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="The intact model. We can still simplify the model by integrating parts of the model and delegating more objects as primary ones." vertex="1">
-          <mxGeometry height="30" width="210" x="315" y="890" as="geometry" />
         </mxCell>
         <mxCell id="GDlz4WF2aqS5Z2Ir6jsj-197" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Data Workers" vertex="1">
           <mxGeometry height="40" width="120" x="360" y="360" as="geometry" />

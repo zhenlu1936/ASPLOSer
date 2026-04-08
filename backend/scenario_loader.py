@@ -1,5 +1,3 @@
-"""Load scenario files and construct system instances."""
-
 from __future__ import annotations
 
 """Scenario override loading for Model 2.0 runs."""
@@ -108,6 +106,67 @@ def _update_node_attributes(node: Node, attrs: dict[str, Any]) -> Node:
         return replace(node, object_attributes=updated)
 
 
+def _apply_node_overrides(graph, node_overrides: list[dict[str, Any]]) -> None:
+    for node_patch in node_overrides:
+        name = node_patch.get("name")
+        if not name or name not in graph.nodes:
+            raise ValueError(f"node_overrides entry references unknown node: {name}")
+        attrs = node_patch.get("attributes", {})
+        graph.nodes[name] = _update_node_attributes(graph.nodes[name], attrs)
+
+
+def _apply_default_edge_attributes(graph, raw_attrs: dict[str, Any] | None) -> None:
+    if not raw_attrs:
+        return
+    default_attrs = _merge_edge_attributes(graph.edges[0].attributes, raw_attrs)
+    graph.edges = [replace(edge, attributes=default_attrs) for edge in graph.edges]
+
+
+def _edge_matches_patch(edge, source, target, name, parsed_edge_type) -> bool:
+    if source is not None and edge.source != source:
+        return False
+    if target is not None and edge.target != target:
+        return False
+    if name is not None and edge.action != name:
+        return False
+    if parsed_edge_type is not None and edge.type != parsed_edge_type:
+        return False
+    return True
+
+
+def _apply_initialize_edge_overrides(graph, edge_overrides: list[dict[str, Any]]) -> None:
+    for edge_patch in edge_overrides:
+        source = edge_patch.get("source")
+        target = edge_patch.get("target")
+        name = edge_patch.get("name")
+        edge_type = edge_patch.get("type")
+        parsed_edge_type = _parse_enum_value(EdgeType, edge_type) if edge_type is not None else None
+        updates = edge_patch.get("attributes", {})
+
+        matched = False
+        for idx, edge in enumerate(graph.edges):
+            if not _edge_matches_patch(edge, source, target, name, parsed_edge_type):
+                continue
+            graph.edges[idx] = replace(edge, attributes=_merge_edge_attributes(edge.attributes, updates))
+            matched = True
+
+        if not matched:
+            raise ValueError(
+                "initialize_edge_overrides entry did not match any edge: "
+                f"source={source}, target={target}, name={name}, type={edge_type}"
+            )
+
+
+def _apply_dependency_overrides(system: System, dep_overrides: dict[str, Any] | None) -> None:
+    if not dep_overrides:
+        return
+    graph = system.graph
+    for subject_name, object_names in dep_overrides.items():
+        if subject_name not in graph.nodes:
+            raise ValueError(f"dependency_overrides references unknown node: {subject_name}")
+        system.dependencies[subject_name] = set(object_names)
+
+
 def remove_edge_pairs(system: System, removals: list[dict[str, Any]]) -> System:
     """Remove matching operation edge pairs from the system graph.
 
@@ -167,55 +226,14 @@ def _apply_yaml_overrides(system: System, payload: dict[str, Any]) -> System:
             "Use initialize_edge_default_attributes and initialize_edge_overrides."
         )
 
-    for node_patch in payload.get("node_overrides", []):
-        name = node_patch.get("name")
-        if not name or name not in graph.nodes:
-            raise ValueError(f"node_overrides entry references unknown node: {name}")
-        node = graph.nodes[name]
-        attrs = node_patch.get("attributes", {})
-        graph.nodes[name] = _update_node_attributes(node, attrs)
-
-    edge_default_attrs_raw = payload.get("initialize_edge_default_attributes")
-    if edge_default_attrs_raw:
-        default_attrs = _merge_edge_attributes(system.graph.edges[0].attributes, edge_default_attrs_raw)
-        graph.edges = [replace(edge, attributes=default_attrs) for edge in graph.edges]
+    _apply_node_overrides(graph, payload.get("node_overrides", []))
+    _apply_default_edge_attributes(graph, payload.get("initialize_edge_default_attributes"))
 
     edge_pair_omissions = payload.get("edge_pair_omissions", [])
     remove_edge_pairs(system, edge_pair_omissions)
 
-    for edge_patch in payload.get("initialize_edge_overrides", []):
-        source = edge_patch.get("source")
-        target = edge_patch.get("target")
-        name = edge_patch.get("name")
-        edge_type = edge_patch.get("type")
-        parsed_edge_type = _parse_enum_value(EdgeType, edge_type) if edge_type is not None else None
-        updates = edge_patch.get("attributes", {})
-
-        matched = False
-        for idx, edge in enumerate(graph.edges):
-            if source is not None and edge.source != source:
-                continue
-            if target is not None and edge.target != target:
-                continue
-            if name is not None and edge.action != name:
-                continue
-            if parsed_edge_type is not None and edge.type != parsed_edge_type:
-                continue
-            graph.edges[idx] = replace(edge, attributes=_merge_edge_attributes(edge.attributes, updates))
-            matched = True
-
-        if not matched:
-            raise ValueError(
-                "initialize_edge_overrides entry did not match any edge: "
-                f"source={source}, target={target}, name={name}, type={edge_type}"
-            )
-
-    dep_overrides = payload.get("dependency_overrides")
-    if dep_overrides:
-        for subject_name, object_names in dep_overrides.items():
-            if subject_name not in graph.nodes:
-                raise ValueError(f"dependency_overrides references unknown node: {subject_name}")
-            system.dependencies[subject_name] = set(object_names)
+    _apply_initialize_edge_overrides(graph, payload.get("initialize_edge_overrides", []))
+    _apply_dependency_overrides(system, payload.get("dependency_overrides"))
 
     # Always infer these subject attributes from dependencies, even if user overrides exist.
     infer_subject_attributes_from_assets(system)
@@ -245,6 +263,23 @@ def _load_yaml_scenario(path: Path) -> System:
     return _apply_yaml_overrides(system, payload)
 
 
+def _resolve_scenario_path(filepath: str) -> Path:
+    """Resolve scenario path using direct path, docs/scenarios, then docs."""
+    path = Path(filepath)
+    if path.exists():
+        return path
+
+    candidate_paths = [
+        Path("docs") / "scenarios" / filepath,
+        Path("docs") / filepath,
+    ]
+    for candidate in candidate_paths:
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(f"Scenario file not found: {filepath}")
+
+
 def load_scenario_from_file(filepath: str) -> System:
     """Load a scenario from file and return a System.
 
@@ -252,16 +287,9 @@ def load_scenario_from_file(filepath: str) -> System:
     - .yaml/.yml: override-based scenario definitions on top of default system
     - .md: currently falls back to default system
     
-    Searches in: current directory, docs/ subdirectory.
+    Searches in: current directory, docs/scenarios/, and docs/.
     """
-    path = Path(filepath)
-    if not path.exists():
-        # Try docs/ subdirectory
-        alt_path = Path("docs") / filepath
-        if alt_path.exists():
-            path = alt_path
-        else:
-            raise FileNotFoundError(f"Scenario file not found: {filepath}")
+    path = _resolve_scenario_path(filepath)
 
     suffix = path.suffix.lower()
     if suffix in {".yaml", ".yml"}:
@@ -273,21 +301,25 @@ def load_scenario_from_file(filepath: str) -> System:
 
 
 def get_available_scenarios() -> list[str]:
-    """List available scenario files in the framework directory and docs subdirectory."""
+    """List available scenario files in the framework and docs/scenarios directory."""
     framework_dir = Path(__file__).parent.parent
 
     def _collect_scenarios(directory: Path) -> list[str]:
         names: list[str] = []
         if not directory.exists():
             return names
-        for ext in ("*.md", "*.yaml", "*.yml"):
+        for ext in ("*.yaml", "*.yml"):
             for scenario_file in directory.glob(ext):
                 lowered = scenario_file.name.lower()
-                if lowered.startswith("scenario") and "readme" not in lowered:
+                if (
+                    "readme" not in lowered
+                    and "template" not in lowered
+                ):
                     names.append(scenario_file.name)
         return names
 
     scenarios = _collect_scenarios(framework_dir)
+    scenarios.extend(_collect_scenarios(framework_dir / "docs" / "scenarios"))
     scenarios.extend(_collect_scenarios(framework_dir / "docs"))
 
     return sorted(set(scenarios))

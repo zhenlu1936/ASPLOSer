@@ -46,17 +46,23 @@ Load and follow the `agent-customization` skill when creating, updating, reviewi
 
 ## Expected Output Locations
 
-- propagation logs: `output/<scenario>_propagation_log.txt`
+- propagation logs: `output/<scenario>_log.txt`
 - diagram markdown: `output/<scenario>_pic.md`
 - diagram image: `output/<scenario>_pic.svg`
+- diagram draw.io: `output/<scenario>_pic.drawio`
+- diagram png: `output/<scenario>_pic.png`
+- model png: `output/model.png`
 
 ## Typical Validation Commands
 
 ```bash
 python3 main.py --list-scenarios
-python3 main.py --scenario scenario1.yaml --no-feedback --cycles 1
-python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1
-python3 main.py --scenario scenario3.yaml --no-feedback --cycles 1 --export-picture
+python3 main.py --scenario docs/scenarios/corporations.yaml --no-feedback --cycles 1
+python3 main.py --scenario docs/scenarios/inexperienced-users-and-insecure-community.yaml --no-feedback --cycles 1
+python3 main.py --scenario docs/scenarios/experienced-independent-developers-and-large-opensource-community.yaml --no-feedback --cycles 1 --export-picture
+python3 main.py --scenario docs/scenarios/log4shell-dependency-exploit-wave.yaml --no-feedback --cycles 1 --export-drawio
+python3 main.py --export-model-png
+python3 main.py --scenario docs/scenarios/corporations.yaml --no-feedback --cycles 1 --export-drawio --export-png
 ```
 
 ## Editing Style

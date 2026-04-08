@@ -1,14 +1,14 @@
 base: default
-name: model2-s1-regulated-private-assistant
+name: model2-s1-corporate-governed-assistant
 
 doc_metadata:
-  title: "Scenario 1: Regulated Private Assistant"
-  composition_note: "This scenario represents a regulated enterprise assistant deployed in a private environment with trusted operators and controlled releases."
-  overview: "Scenario 1 models a conservative production baseline where confidentiality and correctness are generally high, while runtime continuity may occasionally degrade due to network and service dependencies."
+  title: "Scenario 1: Corporate Governed Assistant"
+  composition_note: "This scenario represents a corporation-operated assistant under formal governance, controlled releases, and managed platform operations."
+  overview: "Scenario 1 models a corporate baseline with high trust among internal roles, strong correctness, and only limited continuity degradation caused by enterprise infrastructure dependencies."
 
 # Real-world profile:
-# A regulated enterprise assistant running in a private environment.
-# Most operators are trusted, but end-to-end interaction continuity is not perfect.
+# A corporation-operated assistant in managed enterprise infrastructure.
+# Internal actors are trusted with controlled delivery, but runtime continuity can still be mixed.
 
 node_overrides:
   - name: PreprocessingModule

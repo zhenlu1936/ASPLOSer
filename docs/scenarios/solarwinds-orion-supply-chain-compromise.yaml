@@ -1,41 +1,36 @@
 base: default
-name: model2-s3-compromised-release-incident
+name: model2-s4-solarwinds-orion-supply-chain-compromise
 
 doc_metadata:
-  title: "Scenario 3: Compromised Release Incident"
-  composition_note: "This scenario models a supply-chain compromise where untrusted contributors and tainted artifacts propagate risks across deployment and runtime."
-  overview: "Scenario 3 emphasizes cascading confidentiality and availability risk propagation under degraded trust and discontinuous release operations."
+  title: "Scenario 4: SolarWinds Orion Supply-Chain Compromise"
+  composition_note: "This scenario is inspired by the 2020 SolarWinds Orion incident, where trusted software release channels were abused to deliver tainted updates."
+  overview: "Scenario 4 focuses on release-pipeline trust collapse: artifacts and deployment pathways appear legitimate but carry downgraded confidentiality, correctness, and continuity that propagate across stages."
 
 # Real-world profile:
-# Supply-chain compromise where untrusted contributors and tainted artifacts
-# propagate confidentiality and availability risks through deployment/runtime.
+# A trusted enterprise release channel is compromised and distributes tainted updates.
+# The system consumes apparently legitimate artifacts that are actually high risk.
 
 node_overrides:
-  - name: DataWorkers
-    attributes:
-      credibility: Untrusted
-      correctness: MixedCorrectness
-      continuity: MixedContinuity
   - name: AppDevelopers
     attributes:
-      credibility: Untrusted
+      credibility: MixedCredibility
       correctness: MixedCorrectness
-      continuity: MixedContinuity
   - name: Maintainers
-    attributes:
-      credibility: Untrusted
-      correctness: MixedCorrectness
-      continuity: Discontinuous
-  - name: OutsideEnv
     attributes:
       credibility: MixedCredibility
       correctness: MixedCorrectness
       continuity: MixedContinuity
-  - name: ModelUploadedO
+  - name: OutsideEnv
+    attributes:
+      credibility: Untrusted
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+  - name: AppUploadedO
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
-  - name: AppUploadedO
+      continuity: MixedContinuity
+  - name: ModelUploadedO
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
@@ -43,12 +38,18 @@ node_overrides:
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
-      continuity: MixedContinuity
 
 initialize_edge_overrides:
-  - source: DataWorkers
-    target: UnstructuredDataO
-    name: M2.Process
+  - source: AppDevelopers
+    target: AppProgrammedO
+    name: A2.Upload
+    attributes:
+      confidentiality: NonConfidential
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+  - source: AppHub
+    target: AppUploadedO
+    name: A3.Download
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
@@ -60,17 +61,11 @@ initialize_edge_overrides:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
       continuity: Discontinuous
-  - source: DependenciesDownloadedI
-    target: Maintainers
-    name: P2.Download
-    attributes:
-      confidentiality: NonConfidential
-      correctness: MixedCorrectness
-      continuity: Discontinuous
   - source: ModelAppAndDepI
     target: InferenceModule
     name: D2.Delopy
     attributes:
+      confidentiality: NonConfidential
       correctness: MixedCorrectness
       continuity: Discontinuous
   - source: OutputI
@@ -79,4 +74,4 @@ initialize_edge_overrides:
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
-      continuity: Discontinuous
+      continuity: MixedContinuity

@@ -9,6 +9,8 @@ from typing import Any, Callable, Iterable, List, TypeVar
 from .execution import ExecutionState
 from .model import (
     Confidentiality,
+    Continuity,
+    Correctness,
     Credibility,
     SecurityGrade,
     SecurityObjectives,
@@ -27,6 +29,7 @@ class StructuralViolation:
 @dataclass(frozen=True)
 class PropagationRisk:
     dimension: str
+    severity: str
     detail: str
 
 
@@ -37,6 +40,7 @@ class PropagationEvent:
     stage: str
     action: str
     dimension: str
+    severity: str
     detail: str
 
 
@@ -103,6 +107,100 @@ def _extract_subject_object(source, target):
     elif not source.is_subject and target.is_subject:
         return target, source
     return None, None
+
+
+def _build_confidentiality_risk(edge, severity: str) -> PropagationRisk:
+    severity_label = "High" if severity == "high" else "Medium"
+    if severity == "high":
+        return PropagationRisk(
+            dimension="Confidentiality",
+            severity=severity_label,
+            detail=f"Potential exposure on edge {edge.action}/{edge.name}: {edge.source} -> {edge.target}",
+        )
+    return PropagationRisk(
+        dimension="Confidentiality",
+        severity=severity_label,
+        detail=f"Medium risk from mixed confidentiality on edge {edge.action}/{edge.name}",
+    )
+
+
+def _build_integrity_risk(edge, severity: str) -> PropagationRisk:
+    severity_label = "High" if severity == "high" else "Medium"
+    if severity == "high":
+        return PropagationRisk(
+            dimension="Integrity",
+            severity=severity_label,
+            detail=f"Potential integrity compromise on edge {edge.action}/{edge.name}",
+        )
+    return PropagationRisk(
+        dimension="Integrity",
+        severity=severity_label,
+        detail=f"Medium risk from mixed correctness on edge {edge.action}/{edge.name}",
+    )
+
+
+def _build_availability_risk(edge, severity: str) -> PropagationRisk:
+    severity_label = "High" if severity == "high" else "Medium"
+    if severity == "high":
+        return PropagationRisk(
+            dimension="Availability",
+            severity=severity_label,
+            detail=f"Operation blocked by discontinuous edge {edge.action}/{edge.name}",
+        )
+    return PropagationRisk(
+        dimension="Availability",
+        severity=severity_label,
+        detail=f"Medium risk from mixed continuity on edge {edge.action}/{edge.name}",
+    )
+
+
+def _is_high_confidentiality_risk(s_attr, o_attr, edge) -> bool:
+    return (
+        s_attr.credibility == Credibility.UNTRUSTED
+        and o_attr.confidentiality == Confidentiality.NON_CONFIDENTIAL
+        and edge.attributes.confidentiality == Confidentiality.NON_CONFIDENTIAL
+    )
+
+
+def _is_mixed_confidentiality_risk(s_attr, o_attr, edge) -> bool:
+    return (
+        s_attr.credibility == Credibility.MIXED_CREDIBILITY
+        or o_attr.confidentiality == Confidentiality.MIXED_CONFIDENTIALITY
+        or edge.attributes.confidentiality == Confidentiality.MIXED_CONFIDENTIALITY
+    )
+
+
+def _is_high_integrity_risk(s_attr, o_attr, edge) -> bool:
+    return (
+        s_attr.credibility == Credibility.UNTRUSTED
+        and (
+            s_attr.correctness == Correctness.INCORRECT
+            or o_attr.correctness == Correctness.INCORRECT
+            or edge.attributes.correctness == Correctness.INCORRECT
+        )
+    )
+
+
+def _is_mixed_integrity_risk(s_attr, o_attr, edge) -> bool:
+    return (
+        s_attr.credibility == Credibility.MIXED_CREDIBILITY
+        or s_attr.correctness == Correctness.MIXED_CORRECTNESS
+        or o_attr.correctness == Correctness.MIXED_CORRECTNESS
+        or edge.attributes.correctness == Correctness.MIXED_CORRECTNESS
+    )
+
+
+def _is_high_availability_risk(edge) -> bool:
+    return edge.attributes.continuity.level().value == 0
+
+
+def _is_mixed_availability_risk(s_attr, o_attr, edge) -> bool:
+    return (
+        s_attr.continuity == Continuity.MIXED_CONTINUITY
+        or o_attr.continuity == Continuity.MIXED_CONTINUITY
+        or edge.attributes.continuity == Continuity.MIXED_CONTINUITY
+        or s_attr.credibility == Credibility.MIXED_CREDIBILITY
+    )
 
 
 def compute_security_objectives(system: System) -> SecurityObjectives:
@@ -188,31 +286,29 @@ def evaluate_propagation_risks(system: System) -> List[PropagationRisk]:
         source = graph.nodes[edge.source]
         target = graph.nodes[edge.target]
 
-        # Confidentiality propagation intuition across both edge directions.
         subject, obj = _extract_subject_object(source, target)
         if subject is not None:
             s_attr = subject.as_subject()
             o_attr = obj.as_object()
-            if (
-                s_attr.credibility == Credibility.UNTRUSTED
-                and o_attr.confidentiality == Confidentiality.NON_CONFIDENTIAL
-                and edge.attributes.confidentiality == Confidentiality.NON_CONFIDENTIAL
-            ):
-                risks.append(
-                    PropagationRisk(
-                        dimension="Confidentiality",
-                        detail=f"Potential exposure on edge {edge.action}/{edge.name}: {edge.source} -> {edge.target}",
-                    )
-                )
+            if _is_high_confidentiality_risk(s_attr, o_attr, edge):
+                risks.append(_build_confidentiality_risk(edge, "high"))
+            elif _is_mixed_confidentiality_risk(s_attr, o_attr, edge):
+                risks.append(_build_confidentiality_risk(edge, "medium"))
 
-        # Continuity propagation intuition.
-        if edge.attributes.continuity.level().value == 0:
-            risks.append(
-                PropagationRisk(
-                    dimension="Availability",
-                        detail=f"Operation blocked by discontinuous edge {edge.action}/{edge.name}",
-                )
-            )
+            if _is_high_integrity_risk(s_attr, o_attr, edge):
+                risks.append(_build_integrity_risk(edge, "high"))
+            elif _is_mixed_integrity_risk(s_attr, o_attr, edge):
+                risks.append(_build_integrity_risk(edge, "medium"))
+
+            if _is_high_availability_risk(edge):
+                risks.append(_build_availability_risk(edge, "high"))
+            elif _is_mixed_availability_risk(s_attr, o_attr, edge):
+                risks.append(_build_availability_risk(edge, "medium"))
+            continue
+
+        # Non subject-object edges can still carry hard availability failures.
+        if _is_high_availability_risk(edge):
+            risks.append(_build_availability_risk(edge, "high"))
 
     return risks
 
@@ -223,31 +319,55 @@ def build_analysis_snapshot(system: System) -> tuple[list[str], list[str]]:
     base_risks = evaluate_propagation_risks(system)
     return (
         [f"[{violation.rule}] {violation.detail}" for violation in base_violations],
-        [f"[{risk.dimension}] {risk.detail}" for risk in base_risks],
+        [f"[{risk.dimension}][{risk.severity}] {risk.detail}" for risk in base_risks],
     )
 
 
-def _parse_risk_string(risk: str) -> tuple[str, str]:
-    # Risk format is "[Dimension] detail".
+def _infer_severity_from_detail(detail: str) -> str:
+    lowered = detail.lower()
+    if "high risk" in lowered or "potential" in lowered or "blocked" in lowered:
+        return "High"
+    if "medium risk" in lowered or "mixed" in lowered:
+        return "Medium"
+    return "Unknown"
+
+
+def _parse_risk_string(risk: str) -> tuple[str, str, str]:
+    # Preferred format is "[Dimension][Severity] detail".
     if risk.startswith("[") and "]" in risk:
-        close = risk.find("]")
-        dimension = risk[1:close].strip()
-        detail = risk[close + 1 :].strip()
+        close_dim = risk.find("]")
+        dimension = risk[1:close_dim].strip()
+        rest = risk[close_dim + 1 :].strip()
+        if rest.startswith("[") and "]" in rest:
+            close_sev = rest.find("]")
+            severity = rest[1:close_sev].strip()
+            detail = rest[close_sev + 1 :].strip()
+            if dimension and severity and detail:
+                return dimension, severity, detail
+
+        # Backward-compatible format: "[Dimension] detail"
+        detail = rest
         if dimension and detail:
-            return dimension, detail
-    return "Unknown", risk
+            return dimension, _infer_severity_from_detail(detail), detail
+
+    return "Unknown", "Unknown", risk
+
+
+def _severity_sort_key(severity: str) -> tuple[int, str]:
+    order = {"High": 0, "Medium": 1, "Low": 2, "Unknown": 3}
+    return (order.get(severity, 4), severity)
 
 
 def log_propagation_events(
     execution_steps: List[ExecutionState],
-    output_file: str = "output/propagation_log.txt",
+    output_file: str = "output/default_log.txt",
 ) -> List[PropagationEvent]:
     """Build propagation events from simulation states and optionally write a log file."""
 
     events: List[PropagationEvent] = []
     for step in execution_steps:
         for risk in getattr(step, "risks", []):
-            dimension, detail = _parse_risk_string(risk)
+            dimension, severity, detail = _parse_risk_string(risk)
             events.append(
                 PropagationEvent(
                     step_index=step.step_index,
@@ -255,6 +375,7 @@ def log_propagation_events(
                     stage=step.stage,
                     action=step.action,
                     dimension=dimension,
+                    severity=severity,
                     detail=detail,
                 )
             )
@@ -301,28 +422,33 @@ def _write_propagation_log(
 
         by_stage = _bucket_by(events, lambda event: event.stage)
         by_dimension = _bucket_by(events, lambda event: event.dimension)
+        by_severity = _bucket_by(events, lambda event: event.severity)
 
         f.write(f"Total Propagation Events: {len(events)}\n")
         f.write(f"Stages with Propagation: {len(by_stage)}\n")
         f.write(f"Risk Dimensions: {', '.join(sorted(by_dimension.keys()))}\n\n")
+        f.write(f"Risk Levels: {', '.join(sorted(by_severity.keys(), key=_severity_sort_key))}\n\n")
 
         _write_cycle_summary(f, events_by_cycle, risks_by_cycle)
 
-        _write_section_header(f, "RISKS BY DIMENSION")
+        _write_section_header(f, "RISKS BY DIMENSION AND LEVEL")
 
         for dimension in sorted(by_dimension.keys()):
-            risks_by_detail = _bucket_by(by_dimension[dimension], lambda event: event.detail)
-
             f.write(f"[{dimension}] Total events: {len(by_dimension[dimension])}\n")
-            for detail, detail_events in sorted(risks_by_detail.items()):
-                f.write(f"  • {detail} ({len(detail_events)} occurrences)\n")
-                for event in detail_events[:2]:
-                    f.write(
-                        f"    - Cycle {event.cycle_index}, Step {event.step_index} "
-                        f"[{event.stage}]: {event.action}\n"
-                    )
-                if len(detail_events) > 2:
-                    f.write(f"    ... and {len(detail_events)-2} more occurrences\n")
+            by_severity_in_dim = _bucket_by(by_dimension[dimension], lambda event: event.severity)
+            for severity in sorted(by_severity_in_dim.keys(), key=_severity_sort_key):
+                severity_events = by_severity_in_dim[severity]
+                f.write(f"  [{severity}] {len(severity_events)} events\n")
+                risks_by_detail = _bucket_by(severity_events, lambda event: event.detail)
+                for detail, detail_events in sorted(risks_by_detail.items()):
+                    f.write(f"    • {detail} ({len(detail_events)} occurrences)\n")
+                    for event in detail_events[:2]:
+                        f.write(
+                            f"      - Cycle {event.cycle_index}, Step {event.step_index} "
+                            f"[{event.stage}]: {event.action}\n"
+                        )
+                    if len(detail_events) > 2:
+                        f.write(f"      ... and {len(detail_events)-2} more occurrences\n")
             f.write("\n")
 
         _write_section_header(f, "RISKS BY EXECUTION STAGE")
@@ -332,12 +458,13 @@ def _write_propagation_log(
             if stage not in by_stage:
                 continue
             f.write(f"[{stage}]\n")
-            by_dim_in_stage: dict[str, int] = {}
-            for event in by_stage[stage]:
-                by_dim_in_stage[event.dimension] = by_dim_in_stage.get(event.dimension, 0) + 1
+            by_dim_in_stage = _bucket_by(by_stage[stage], lambda event: event.dimension)
 
-            for dim, count in sorted(by_dim_in_stage.items()):
-                f.write(f"  {dim}: {count} risks\n")
+            for dim in sorted(by_dim_in_stage.keys()):
+                f.write(f"  {dim}:\n")
+                by_severity_in_stage_dim = _bucket_by(by_dim_in_stage[dim], lambda event: event.severity)
+                for severity in sorted(by_severity_in_stage_dim.keys(), key=_severity_sort_key):
+                    f.write(f"    {severity}: {len(by_severity_in_stage_dim[severity])} risks\n")
             f.write("\n")
 
         _write_section_header(f, "DETAILED EVENT LOG (First 50 events)")
@@ -411,7 +538,7 @@ def _write_all_execution_events(log_file, execution_steps: List[ExecutionState])
         log_file.write("\n")
 
 
-def print_propagation_summary(events: List[PropagationEvent], log_path: str = "output/propagation_log.txt") -> None:
+def print_propagation_summary(events: List[PropagationEvent], log_path: str = "output/default_log.txt") -> None:
     if not events:
         print("✓ No propagation risks detected!")
         return
@@ -424,10 +551,14 @@ def print_propagation_summary(events: List[PropagationEvent], log_path: str = "o
 
     for dimension in sorted(by_dimension.keys()):
         print(f"  [{dimension}] {len(by_dimension[dimension])} events")
-        unique_details = {e.detail for e in by_dimension[dimension]}
-        for detail in sorted(unique_details)[:3]:
-            print(f"    • {detail}")
-        if len(unique_details) > 3:
-            print(f"    ... and {len(unique_details)-3} more")
+        by_severity = _bucket_by(by_dimension[dimension], lambda event: event.severity)
+        for severity in sorted(by_severity.keys(), key=_severity_sort_key):
+            severity_events = by_severity[severity]
+            print(f"    - {severity}: {len(severity_events)} events")
+            unique_details = {e.detail for e in severity_events}
+            for detail in sorted(unique_details)[:2]:
+                print(f"      • {detail}")
+            if len(unique_details) > 2:
+                print(f"      ... and {len(unique_details)-2} more")
 
     print(f"\nSee {log_path} for detailed event log.\n")

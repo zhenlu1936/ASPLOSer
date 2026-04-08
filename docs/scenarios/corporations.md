@@ -1,14 +1,14 @@
-# Scenario 1: Regulated Private Assistant
+# Scenario 1: Corporate Governed Assistant
 
 ## Composition Note
 
-This document describes the composed runtime state after applying `scenario1.yaml` on top of the default system.
+This document describes the composed runtime state after applying `corporations.yaml` on top of the default system.
 
-This scenario represents a regulated enterprise assistant deployed in a private environment with trusted operators and controlled releases.
+This scenario represents a corporation-operated assistant under formal governance, controlled releases, and managed platform operations.
 
 ## Overview
 
-Scenario 1 models a conservative production baseline where confidentiality and correctness are generally high, while runtime continuity may occasionally degrade due to network and service dependencies.
+Scenario 1 models a corporate baseline with high trust among internal roles, strong correctness, and only limited continuity degradation caused by enterprise infrastructure dependencies.
 
 ### Node
 
@@ -34,6 +34,6 @@ Key overridden edges:
 ## Usage
 
 ```bash
-python3 main.py --scenario scenario1.yaml --no-feedback --cycles 1
+python3 main.py --scenario docs/scenarios/corporations.yaml --no-feedback --cycles 1
 ```
 
