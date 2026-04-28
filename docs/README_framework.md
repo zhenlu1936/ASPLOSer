@@ -87,6 +87,7 @@ Initialize rule:
   - `output/<scenario>_pic_integrity.png`
   - `output/<scenario>_pic_availability.png`
 - diagram PNG from provided model XML: `output/model.png`
+- GIF animations (per dimension): `output/<scenario>_conf.gif`, `output/<scenario>_inte.gif`, `output/<scenario>_avai.gif`
 
 Per-stage draw.io export note:
 

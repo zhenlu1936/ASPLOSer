@@ -27,8 +27,8 @@ Overrides and inferred highlights:
 - A3.Download confidentiality: **NonConfidential**
 - A3.Download correctness: **MixedCorrectness**
 - A3.Download continuity: **MixedContinuity**
-- D2.Delopy correctness: **MixedCorrectness**
-- D2.Delopy continuity: **Discontinuous**
+- D2.Deploy correctness: **MixedCorrectness**
+- D2.Deploy continuity: **Discontinuous**
 - M6.Download confidentiality: **NonConfidential**
 - M6.Download correctness: **MixedCorrectness**
 - M6.Download continuity: **Discontinuous**

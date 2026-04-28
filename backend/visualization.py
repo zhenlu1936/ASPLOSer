@@ -2,74 +2,33 @@ from __future__ import annotations
 
 """Visualization export helpers for Model 2.0 system views."""
 
-import html as _html_mod
-from dataclasses import dataclass, field
 from pathlib import Path
 import re
 import shutil
 import subprocess
 from xml.etree.ElementTree import Element, SubElement, fromstring, tostring
 
-from .model import EdgeType, System
-
+from .propagation import (
+    SECURITY_DIMENSIONS,
+    EdgeInfo,
+    Topology,
+    apply_directional_filters,
+    build_progressive_stage_risks,
+    clean_label_value,
+    collect_propagation_targets,
+    filter_risks_by_dimension,
+    has_html_markup,
+    normalize_token,
+    ordered_stage_names,
+    parse_fired_action_name,
+    parse_risk_action_name,
+    parse_risk_edge,
+    propagate_risk_from_subjects,
+)
 
 # ---------------------------------------------------------------------------
-# Compiled patterns
+# Tiny helpers
 # ---------------------------------------------------------------------------
-_RISK_EDGE_PATTERN = re.compile(r"edge\s+([^/\s]+)/([^\s]+)")
-_CPN_ACTION_PATTERN = re.compile(r"CPN\[([^\]]+)\]")
-_HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
-_FEEDBACK_ACTION_PATTERN = re.compile(r"^f\d")  # e.g. f1feedback, f2...
-
-_STAGE_SEQUENCE = ["Initial", "Development", "Deployment", "Operation", "Feedback"]
-_DIMENSIONS = ["Confidentiality", "Integrity", "Availability"]
-
-# ---------------------------------------------------------------------------
-# Tiny helpers (no template access)
-# ---------------------------------------------------------------------------
-
-def _normalize_token(value: str) -> str:
-    stripped = _HTML_TAG_PATTERN.sub("", value)
-    decoded = _html_mod.unescape(stripped).replace("&", "and")
-    return "".join(ch.lower() for ch in decoded if ch.isalnum())
-
-
-def _clean_cell_value(value: str) -> str:
-    return _html_mod.unescape(_HTML_TAG_PATTERN.sub("", value)).strip()
-
-
-_RISK_RANKS = {"high": 2, "medium": 1, "low": 0}
-
-
-def _risk_rank(severity: str) -> int:
-    return _RISK_RANKS.get(severity.lower(), -1)
-
-
-def _should_replace_risk(
-    current: tuple[str, str] | None,
-    severity: str,
-    origin: str,
-) -> bool:
-    if current is None:
-        return True
-    cur_sev, cur_ori = current
-    new_rank, cur_rank = _risk_rank(severity), _risk_rank(cur_sev)
-    if new_rank != cur_rank:
-        return new_rank > cur_rank
-    # Equal severity → prefer propagated over assigned.
-    return (origin == "propagated") > (cur_ori == "propagated")
-
-
-def _action_origin(action_name: str, assigned_actions: set[str]) -> str:
-    if action_name in assigned_actions:
-        return "assigned"
-    if action_name.endswith(".Initialize") or action_name.endswith(".Initialization"):
-        return "initialization"
-    return "propagated"
-
-
-def _risk_origin(action_name: str, edge_name: str, assigned_object_arcs: set[str]) -> str:
-    return "assigned" if f"{action_name}/{edge_name}" in assigned_object_arcs else "propagated"
 
 
 # Color palette: (fill, stroke, font) keyed by (origin_group, severity_group).
@@ -119,79 +78,22 @@ def _scenario_stem(scenario_name: str | None) -> str:
     return Path(normalized).stem or "default"
 
 
-# ---------------------------------------------------------------------------
-# Risk-string parsing (template-independent)
-# ---------------------------------------------------------------------------
-
-def _collect_propagation_targets(
-    risk_strings: list[str],
-    assigned_actions: set[str] | None = None,
-    assigned_object_arcs: set[str] | None = None,
-) -> tuple[dict[str, tuple[str, str]], dict[str, tuple[str, str]]]:
-    actions_set = assigned_actions or set()
-    arcs_set = assigned_object_arcs or set()
-    action_levels: dict[str, tuple[str, str]] = {}
-    edge_levels: dict[str, tuple[str, str]] = {}
-
-    for risk in risk_strings:
-        if not risk.startswith("["):
-            continue
-        parts = risk.split("]", 2)
-        if len(parts) < 3:
-            continue
-        severity = parts[1].lstrip("[").strip() or "Medium"
-        match = _RISK_EDGE_PATTERN.search(parts[2])
-        if not match:
-            continue
-
-        action_name, edge_name = match.group(1), match.group(2)
-        act_origin = _action_origin(action_name, actions_set)
-        arc_origin = _risk_origin(action_name, edge_name, arcs_set)
-        action_key = _normalize_token(action_name)
-        edge_key = _normalize_token(edge_name)
-
-        if _should_replace_risk(action_levels.get(action_key), severity, act_origin):
-            action_levels[action_key] = (severity, act_origin)
-        if _should_replace_risk(edge_levels.get(edge_key), severity, arc_origin):
-            edge_levels[edge_key] = (severity, arc_origin)
-
-    return action_levels, edge_levels
-
-
-def _filter_risks_by_dimension(risk_strings: list[str], dimension: str) -> list[str]:
-    prefix = f"[{dimension}]"
-    return [r for r in risk_strings if r.startswith(prefix)]
+def _require_template(template_file: str) -> Path:
+    path = Path(template_file)
+    if not path.exists():
+        raise FileNotFoundError(f"Template draw.io file not found: {path}")
+    return path
 
 
 # ---------------------------------------------------------------------------
-# Template topology – scanned once, reused by all directional filters
+# Template topology scanner
 # ---------------------------------------------------------------------------
 
-@dataclass
-class _EdgeInfo:
-    edge_id: str
-    source: str
-    target: str
-    label_tokens: list[str] = field(default_factory=list)
-
-
-@dataclass
-class _Topology:
-    """Pre-parsed draw.io template topology."""
-    mx_root: Element
-    subject_ids: set[str] = field(default_factory=set)
-    action_ids: set[str] = field(default_factory=set)
-    subject_name_by_id: dict[str, str] = field(default_factory=dict)
-    action_name_by_id: dict[str, str] = field(default_factory=dict)
-    edges: list[_EdgeInfo] = field(default_factory=list)
-
-
-def _scan_topology(xml_root: Element) -> _Topology | None:
-    mx_root = xml_root.find("./diagram/mxGraphModel/root")
+def _scan_topology(mx_root: Element | None) -> Topology | None:
     if mx_root is None:
         return None
 
-    topo = _Topology(mx_root=mx_root)
+    topo = Topology()
 
     # Classify vertices.
     for cell in mx_root.findall("mxCell"):
@@ -201,7 +103,7 @@ def _scan_topology(xml_root: Element) -> _Topology | None:
         if not cell_id:
             continue
         style_map = _parse_style(cell.get("style", ""))
-        token = _normalize_token(cell.get("value", ""))
+        token = normalize_token(cell.get("value", ""))
         if "ellipse" in style_map:
             topo.subject_ids.add(cell_id)
             topo.subject_name_by_id[cell_id] = token
@@ -216,7 +118,7 @@ def _scan_topology(xml_root: Element) -> _Topology | None:
         parent_id = cell.get("parent", "")
         val = cell.get("value", "")
         if parent_id and val:
-            token = _normalize_token(val)
+            token = normalize_token(val)
             if token:
                 child_labels.setdefault(parent_id, []).append(token)
 
@@ -228,7 +130,7 @@ def _scan_topology(xml_root: Element) -> _Topology | None:
         if not source or not target:
             continue
         edge_id = cell.get("id", "")
-        topo.edges.append(_EdgeInfo(
+        topo.edges.append(EdgeInfo(
             edge_id=edge_id,
             source=source,
             target=target,
@@ -236,247 +138,6 @@ def _scan_topology(xml_root: Element) -> _Topology | None:
         ))
 
     return topo
-
-
-# ---------------------------------------------------------------------------
-# Directional filtering – single pass over topology
-# ---------------------------------------------------------------------------
-
-def _apply_directional_filters(
-    topo: _Topology,
-    action_levels: dict[str, tuple[str, str]],
-    edge_levels: dict[str, tuple[str, str]],
-    assigned_subjects: set[str] | None = None,
-) -> tuple[
-    dict[str, tuple[str, str]],
-    dict[str, tuple[str, str]],
-    dict[str, tuple[str, str]],
-    set[str],
-]:
-    """Return (action_levels, edge_levels, subject_levels, cascade_terminal_subjects)
-    after directional filtering.  cascade_terminal_subjects are subject IDs colored
-    solely by step-4 cascade; they should NOT propagate further.
-
-    Rules:
-    - Actions keep assigned/initialization colors; propagated color only if an
-      incoming risky edge label exists.
-    - Edge labels keep assigned/initialization colors; propagated color only on
-      output arcs (action→subject) whose source action is colored.
-    - Subjects are colored by incoming risky edge labels (action→subject only).
-    """
-
-    # --- 1. Directional action filtering ---
-    filtered_actions: dict[str, tuple[str, str]] = {
-        name: level for name, level in action_levels.items()
-        if level[1] in {"assigned", "initialization"}
-    }
-    for edge in topo.edges:
-        if edge.target not in topo.action_ids:
-            continue
-        action_token = topo.action_name_by_id.get(edge.target, "")
-        if not action_token:
-            continue
-        current = filtered_actions.get(action_token)
-        if current is not None and current[1] in {"assigned", "initialization"}:
-            continue
-        for label in edge.label_tokens:
-            if label not in edge_levels:
-                continue
-            severity, origin = edge_levels[label]
-            if _should_replace_risk(filtered_actions.get(action_token), severity, origin):
-                filtered_actions[action_token] = (severity, origin)
-
-    # --- 2. Directional edge filtering (action→subject output arcs) ---
-    # Keep labels on action→subject arcs whose source action is colored.
-    colored_arc_tokens: set[str] = set()
-    for edge in topo.edges:
-        if edge.source in topo.action_ids and edge.target in topo.subject_ids:
-            source_token = topo.action_name_by_id.get(edge.source, "")
-            if source_token in filtered_actions:
-                colored_arc_tokens.update(edge.label_tokens)
-
-    filtered_edges: dict[str, tuple[str, str]] = {}
-    for token, (severity, origin) in edge_levels.items():
-        if origin in {"assigned", "initialization"} or token in colored_arc_tokens:
-            filtered_edges[token] = (severity, origin)
-
-    # --- 3. Subject coloring (action→subject edges only) ---
-    subjects_set = assigned_subjects or set()
-    assigned_subject_tokens = {_normalize_token(s) for s in subjects_set}
-    subject_levels: dict[str, tuple[str, str]] = {}
-
-    for edge in topo.edges:
-        if edge.target not in topo.subject_ids:
-            continue
-        severity = ""
-        for label in edge.label_tokens:
-            if label in filtered_edges:
-                severity, _ = filtered_edges[label]
-                break
-        if not severity:
-            continue
-
-        subject_id = edge.target
-        subject_token = topo.subject_name_by_id.get(subject_id, "")
-        origin = (
-            "assigned"
-            if subject_token in assigned_subject_tokens and severity.lower() != "high"
-            else "propagated"
-        )
-        if _should_replace_risk(subject_levels.get(subject_id), severity, origin):
-            subject_levels[subject_id] = (severity, origin)
-
-    # --- 4. Cascade through colored subjects: subject→action→output arcs ---
-    # When a colored subject feeds into an action, that input arc is colored,
-    # the action itself becomes colored, and its output arcs inherit the risk.
-    # Feedback actions (f1, f2, …) are excluded: cascade stops before them.
-    for edge in topo.edges:
-        if edge.source not in topo.subject_ids or edge.target not in topo.action_ids:
-            continue
-        if edge.source not in subject_levels:
-            continue
-        action_token = topo.action_name_by_id.get(edge.target, "")
-        if not action_token:
-            continue
-        # Do not cascade into feedback actions.
-        if _FEEDBACK_ACTION_PATTERN.match(action_token):
-            continue
-        # Color input arc labels from colored subject.  Labels inherit the
-        # subject's risk even when the analysis never flagged them (e.g. the
-        # arc's property is at baseline).
-        subject_severity, _ = subject_levels[edge.source]
-        for label in edge.label_tokens:
-            if label not in filtered_edges:
-                if label in edge_levels:
-                    filtered_edges[label] = edge_levels[label]
-                else:
-                    filtered_edges[label] = (subject_severity, "propagated")
-
-        # Color the downstream action from these input labels (or directly
-        # from the subject when the edge is unlabeled).
-        current = filtered_actions.get(action_token)
-        if current is not None and current[1] in {"assigned", "initialization"}:
-            continue
-
-        if edge.label_tokens:
-            for label in edge.label_tokens:
-                if label not in filtered_edges:
-                    continue
-                severity, origin = filtered_edges[label]
-                if _should_replace_risk(filtered_actions.get(action_token), severity, origin):
-                    filtered_actions[action_token] = (severity, origin)
-        else:
-            # Unlabeled edge: propagate the subject's risk directly.
-            if _should_replace_risk(filtered_actions.get(action_token), subject_severity, "propagated"):
-                filtered_actions[action_token] = (subject_severity, "propagated")
-
-    # Color output arcs of actions that were newly colored in step 4,
-    # and propagate to the target subjects of those arcs.
-    cascade_terminal: set[str] = set()
-    for edge in topo.edges:
-        if edge.source in topo.action_ids and edge.target in topo.subject_ids:
-            source_token = topo.action_name_by_id.get(edge.source, "")
-            if source_token not in filtered_actions:
-                continue
-            act_severity, act_origin = filtered_actions[source_token]
-            for label in edge.label_tokens:
-                if label not in filtered_edges:
-                    filtered_edges[label] = (act_severity, "propagated")
-            # Color the target subject of this output arc (terminal – no further propagation).
-            if _should_replace_risk(subject_levels.get(edge.target), act_severity, "propagated"):
-                subject_levels[edge.target] = (act_severity, "propagated")
-                cascade_terminal.add(edge.target)
-
-    return filtered_actions, filtered_edges, subject_levels, cascade_terminal
-
-
-# ---------------------------------------------------------------------------
-# Colored subject → outgoing arc propagation
-# ---------------------------------------------------------------------------
-
-
-def _propagate_risk_from_subjects(
-    topo: _Topology,
-    edge_levels: dict[str, tuple[str, str]],
-    subject_levels: dict[str, tuple[str, str]],
-    skip_subjects: set[str] | None = None,
-) -> None:
-    """Extend edge_levels with risk from any colored subject (outgoing arcs only).
-
-    Skips arcs targeting feedback actions (f1, f2, …) to prevent backward
-    cascade through the feedback loop.
-    """
-    for edge in topo.edges:
-        subject_id = edge.source
-        if subject_id not in subject_levels:
-            continue
-        if skip_subjects and subject_id in skip_subjects:
-            continue
-        # Do not propagate into feedback actions.
-        if edge.target in topo.action_ids:
-            target_token = topo.action_name_by_id.get(edge.target, "")
-            if _FEEDBACK_ACTION_PATTERN.match(target_token):
-                continue
-        severity, _ = subject_levels[subject_id]
-        for label in edge.label_tokens:
-            if label not in edge_levels:
-                edge_levels[label] = (severity, "propagated")
-
-
-# ---------------------------------------------------------------------------
-# Progressive stage risk builder
-# ---------------------------------------------------------------------------
-
-def _parse_risk_action_name(risk: str) -> str | None:
-    match = _RISK_EDGE_PATTERN.search(risk)
-    return match.group(1) if match else None
-
-
-def _parse_fired_action_name(action_text: str) -> str | None:
-    match = _CPN_ACTION_PATTERN.search(action_text)
-    return match.group(1) if match else None
-
-
-def _build_progressive_stage_risks(
-    risk_strings: list[str],
-    states,
-    development_cycles: int,
-    feedback: bool,
-) -> dict[tuple[int, int], list[str]]:
-    risks_by_action: dict[str, list[str]] = {}
-    for risk in risk_strings:
-        action_name = _parse_risk_action_name(risk)
-        if action_name is not None:
-            risks_by_action.setdefault(action_name, []).append(risk)
-
-    fired_actions_by_cycle_stage: dict[tuple[int, str], set[str]] = {}
-    for state in states:
-        action_name = _parse_fired_action_name(state.action)
-        if action_name is not None:
-            key = (state.cycle_index, state.stage)
-            fired_actions_by_cycle_stage.setdefault(key, set()).add(action_name)
-
-    ordered_stages = _STAGE_SEQUENCE if feedback else _STAGE_SEQUENCE[:-1]
-    stage_indexes = {name: idx for idx, name in enumerate(ordered_stages)}
-
-    progressive: dict[tuple[int, int], list[str]] = {}
-    for cycle_index in range(1, development_cycles + 1):
-        cumulative_actions: set[str] = set()
-        progressive[(cycle_index, 0)] = []
-        for stage_name in ordered_stages[1:]:
-            cumulative_actions.update(
-                fired_actions_by_cycle_stage.get((cycle_index, stage_name), set())
-            )
-            seen: set[str] = set()
-            stage_risks: list[str] = []
-            for action_name in cumulative_actions:
-                for risk in risks_by_action.get(action_name, []):
-                    if risk not in seen:
-                        seen.add(risk)
-                        stage_risks.append(risk)
-            progressive[(cycle_index, stage_indexes[stage_name])] = stage_risks
-
-    return progressive
 
 
 # ---------------------------------------------------------------------------
@@ -573,37 +234,36 @@ def _render_template_propagation_drawio(
     root = fromstring(xml_text)
 
     # 1. Parse risks into raw levels.
-    action_levels, edge_levels = _collect_propagation_targets(
+    action_levels, edge_levels = collect_propagation_targets(
         risk_strings,
         assigned_actions=assigned_actions,
         assigned_object_arcs=assigned_object_arcs,
     )
 
     # 2. Scan template topology once.
-    topo = _scan_topology(root)
+    mx_root = root.find("./diagram/mxGraphModel/root")
+    topo = _scan_topology(mx_root)
     if topo is None:
         output_path.write_text(xml_text, encoding="utf-8")
         return output_path
 
     # 3. Apply all directional filters in one pass.
-    action_levels, edge_levels, subject_levels, cascade_terminal = _apply_directional_filters(
+    action_levels, edge_levels, subject_levels, cascade_terminal = apply_directional_filters(
         topo, action_levels, edge_levels, assigned_subjects=assigned_subjects,
     )
 
     # 4. Propagate risk from inferred-module subjects (skip cascade-terminal ones).
-    _propagate_risk_from_subjects(topo, edge_levels, subject_levels, skip_subjects=cascade_terminal)
+    propagate_risk_from_subjects(topo, edge_levels, subject_levels, skip_subjects=cascade_terminal)
 
     # 5. Apply colors to cells.
     for cell in root.iter("mxCell"):
         cell_id = cell.get("id", "")
         value = cell.get("value", "")
-        normalized = _normalize_token(value)
+        normalized = normalize_token(value)
         style_map = _parse_style(cell.get("style", ""))
 
         is_action = style_map.get("rounded") == "0"
-        is_init = is_action and (
-            normalized.endswith("initialize") or normalized.endswith("initialization")
-        )
+        is_init = is_action and normalized.endswith("initialize")
         is_edge_label = "edgeLabel" in style_map or (
             "text" in style_map and "ellipse" not in style_map and not is_action
         )
@@ -614,8 +274,8 @@ def _render_template_propagation_drawio(
             style_map["strokeColor"] = "#16a34a"
             style_map["fontColor"] = "#14532d"
             cell.set("style", _serialize_style(style_map))
-            if _HTML_TAG_PATTERN.search(value):
-                cell.set("value", _clean_cell_value(value))
+            if has_html_markup(value):
+                cell.set("value", clean_label_value(value))
             continue
 
         # Determine risk level for this cell.
@@ -633,8 +293,8 @@ def _render_template_propagation_drawio(
                 for key in ("fillColor", "strokeColor", "fontColor"):
                     style_map.pop(key, None)
                 cell.set("style", _serialize_style(style_map))
-                if _HTML_TAG_PATTERN.search(value):
-                    cell.set("value", _clean_cell_value(value))
+                if has_html_markup(value):
+                    cell.set("value", clean_label_value(value))
             continue
 
         fill, stroke, font = _risk_palette(severity, origin)
@@ -651,10 +311,10 @@ def _render_template_propagation_drawio(
             style_map["fontColor"] = font
 
         cell.set("style", _serialize_style(style_map))
-        if _HTML_TAG_PATTERN.search(value):
-            cell.set("value", _clean_cell_value(value))
+        if has_html_markup(value):
+            cell.set("value", clean_label_value(value))
 
-    _append_propagation_legend(topo.mx_root, action_levels, edge_levels, subject_levels)
+    _append_propagation_legend(mx_root, action_levels, edge_levels, subject_levels)
 
     output_path.write_text(tostring(root, encoding="unicode"), encoding="utf-8")
     return output_path
@@ -683,7 +343,7 @@ def _derive_dimension_drawio_paths(
     base = Path(output_file) if output_file else _derive_drawio_output_path(scenario_name, None)
     return {
         dim: base.with_name(f"{base.stem}_{dim.lower()}.drawio")
-        for dim in _DIMENSIONS
+        for dim in SECURITY_DIMENSIONS
     }
 
 
@@ -736,10 +396,7 @@ def export_template_propagation_drawio(
     assigned_subjects: set[str] | None = None,
 ) -> Path:
     """Copy the provided draw.io XML template and recolor cells based on propagation risks."""
-    template_path = Path(template_file)
-    if not template_path.exists():
-        raise FileNotFoundError(f"Template draw.io file not found: {template_path}")
-
+    template_path = _require_template(template_file)
     output_path = _derive_drawio_output_path(scenario_name, output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     return _render_template_propagation_drawio(
@@ -760,16 +417,13 @@ def export_template_propagation_drawio_per_dimension(
     assigned_subjects: set[str] | None = None,
 ) -> dict[str, Path]:
     """Export one draw.io file per risk dimension."""
-    template_path = Path(template_file)
-    if not template_path.exists():
-        raise FileNotFoundError(f"Template draw.io file not found: {template_path}")
-
+    template_path = _require_template(template_file)
     output_paths = _derive_dimension_drawio_paths(scenario_name, output_file)
     exported: dict[str, Path] = {}
     for dimension, path in output_paths.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         exported[dimension] = _render_template_propagation_drawio(
-            risk_strings=_filter_risks_by_dimension(risk_strings, dimension),
+            risk_strings=filter_risks_by_dimension(risk_strings, dimension),
             template_path=template_path,
             output_path=path,
             assigned_actions=assigned_actions,
@@ -792,16 +446,13 @@ def export_template_propagation_drawio_per_stage(
     assigned_subjects: set[str] | None = None,
 ) -> list[Path]:
     """Export draw.io files per cycle: initial plus one checkpoint per execution stage."""
-    template_path = Path(template_file)
-    if not template_path.exists():
-        raise FileNotFoundError(f"Template draw.io file not found: {template_path}")
-
+    template_path = _require_template(template_file)
     base_dir = Path(output_dir) if output_dir else Path("output")
     base_dir.mkdir(parents=True, exist_ok=True)
 
     stem = _scenario_stem(scenario_name)
-    ordered_stages = _STAGE_SEQUENCE if feedback else _STAGE_SEQUENCE[:-1]
-    stage_risks = _build_progressive_stage_risks(
+    ordered_stages = ordered_stage_names(feedback)
+    stage_risks = build_progressive_stage_risks(
         risk_strings=risk_strings, states=states,
         development_cycles=development_cycles, feedback=feedback,
     )
@@ -845,3 +496,349 @@ def export_reference_model_png(
 ) -> Path:
     """Export the provided canonical model draw.io XML to PNG."""
     return export_drawio_xml_to_png(source_drawio_file, output_file=output_file)
+
+
+# ---------------------------------------------------------------------------
+# GIF animation export (per-dimension, one frame per CPN transition)
+# ---------------------------------------------------------------------------
+
+# Banner accent colors per dimension (RGB tuples for PIL).
+_GIF_DIM_COLORS = {
+    "Confidentiality": (147, 197, 253),  # blue-300
+    "Integrity":       (134, 239, 172),  # green-300
+    "Availability":    (252, 211, 77),   # yellow-300
+}
+
+
+def _gif_load_font(size: int):
+    """Load a PIL TrueType font, falling back to the built-in default."""
+    try:
+        from PIL import ImageFont
+    except ImportError:
+        return None
+    for candidate in (
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/System/Library/Fonts/Arial.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ):
+        try:
+            return ImageFont.truetype(candidate, size)
+        except (OSError, IOError):
+            pass
+    return ImageFont.load_default()
+
+
+_RISK_SUMMARY_RE = re.compile(
+    r"\[(?P<dim>\w+)\]\[(?P<sev>\w+)\].*?on edge\s+(?P<act>[^/\s]+)/(?P<arc>\S+)\s*\((?P<detail>[^)]+)\)"
+)
+
+
+def _gif_frame0_overlay(img, assigned_events: list, dimension: str):
+    """Overlay an annotation box onto the frame-0 diagram listing assigned defects."""
+    from PIL import Image, ImageDraw
+
+    if not assigned_events:
+        return img
+
+    img = img.convert("RGBA")
+    overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    font_title = _gif_load_font(16)
+    font_body  = _gif_load_font(13)
+    kw_t = {"font": font_title} if font_title else {}
+    kw_b = {"font": font_body}  if font_body  else {}
+
+    LINE_H = 22
+    PAD    = 12
+
+    dim_color   = _GIF_DIM_COLORS.get(dimension, (255, 255, 255))
+    title_text  = f"Initial {dimension} Assignment"
+    event_lines = [_gif_event_short(e, is_assigned=True) for e in assigned_events]
+
+    # Estimate box width from longest line.
+    all_texts = [title_text] + event_lines
+    approx_w  = max(len(t) for t in all_texts) * 8 + PAD * 2
+    box_w = min(max(320, approx_w), img.width - 30)
+    box_h = PAD + LINE_H + len(event_lines) * LINE_H + PAD
+
+    x, y = 14, 14  # top-left corner of the diagram canvas
+
+    draw.rectangle(
+        [x, y, x + box_w, y + box_h],
+        fill=(15, 23, 42, 218),
+        outline=(55, 80, 120, 255),
+        width=1,
+    )
+    draw.text((x + PAD, y + PAD), title_text, fill=dim_color, **kw_t)
+    for i, line in enumerate(event_lines):
+        draw.text(
+            (x + PAD, y + PAD + LINE_H + i * LINE_H),
+            line,
+            fill=(216, 180, 254),  # purple-300
+            **kw_b,
+        )
+
+    return Image.alpha_composite(img, overlay).convert("RGB")
+
+
+def _gif_event_short(risk: str, is_assigned: bool = False) -> str:
+    """Compress a risk string to a single compact bullet line."""
+    m = _RISK_SUMMARY_RE.search(risk)
+    if m:
+        prefix = "[assigned] " if is_assigned else "[+propagated] "
+        return f"{prefix}{m.group('act')} / {m.group('arc')}  ({m.group('detail')})"
+    # fallback: truncate raw string
+    return risk[:100]
+
+
+def _gif_frame_banner(
+    img,
+    dimension: str,
+    step_label: str,
+    delta_risks: list[str],
+    banner_events: list[str] | None = None,
+    events_are_assigned: bool = False,
+    fixed_lines: int = 0,
+):
+    """Append a status banner below a diagram frame PIL Image.
+
+    ``banner_events`` are listed as bullet lines in the banner body.
+    If None, ``delta_risks`` is used.  ``events_are_assigned`` controls
+    whether bullets say "[assigned]" or "[+propagated]".
+    ``fixed_lines`` sets a minimum banner height so all frames in a GIF have
+    identical dimensions (required for proper GIF encoding).
+
+    Returns a new PIL Image with the banner stitched on at the bottom.
+    """
+    from PIL import Image, ImageDraw
+
+    if banner_events is None:
+        banner_events = delta_risks
+
+    img = img.convert("RGB")
+    w, h = img.size
+
+    LINE_H    = 22   # pixels per event bullet line
+    HEADER_H  = 62   # fixed header area height
+    n_lines   = max(len(banner_events), fixed_lines)
+    banner_h  = HEADER_H + n_lines * LINE_H
+    banner    = Image.new("RGB", (w, banner_h), (15, 23, 42))   # slate-950
+    draw      = ImageDraw.Draw(banner)
+
+    font_title = _gif_load_font(18)
+    font_body  = _gif_load_font(14)
+    font_event = _gif_load_font(13)
+    kw_t = {"font": font_title} if font_title else {}
+    kw_b = {"font": font_body}  if font_body  else {}
+    kw_e = {"font": font_event} if font_event else {}
+
+    # Left side: "[ Dimension ]" + step label.
+    dim_color = _GIF_DIM_COLORS.get(dimension, (255, 255, 255))
+    draw.text((14, 6),  f"[ {dimension} ]", fill=dim_color, **kw_t)
+    draw.text((14, 34), step_label, fill=(203, 213, 225), **kw_b)
+
+    # Right side: summary indicator.
+    if delta_risks:
+        risk_text  = f"+{len(delta_risks)} new risk(s) this step"
+        risk_color = (252, 165, 165)   # red-300
+    elif events_are_assigned and banner_events:
+        risk_text  = f"{len(banner_events)} assigned defect(s)"
+        risk_color = (216, 180, 254)   # purple-300
+    else:
+        risk_text  = "No new risks this step"
+        risk_color = (167, 243, 208)   # green-200
+
+    try:
+        bbox = draw.textbbox((0, 0), risk_text, font=font_title)
+        tw = bbox[2] - bbox[0]
+    except AttributeError:
+        tw = len(risk_text) * 10
+
+    draw.text((w - tw - 14, 6), risk_text, fill=risk_color, **kw_t)
+
+    # Horizontal separator.
+    draw.line([(0, HEADER_H - 2), (w, HEADER_H - 2)], fill=(30, 41, 59), width=1)
+
+    # Event bullet lines.
+    bullet_color = (
+        (216, 180, 254) if events_are_assigned else (252, 165, 165)  # purple / red
+    )
+    for i, risk in enumerate(banner_events):
+        y = HEADER_H + i * LINE_H + 2
+        short = _gif_event_short(risk, is_assigned=events_are_assigned)
+        draw.text((14, y), short, fill=bullet_color, **kw_e)
+
+    combined = Image.new("RGB", (w, h + banner_h))
+    combined.paste(img, (0, 0))
+    combined.paste(banner, (0, h))
+    return combined
+
+
+def export_propagation_gif_per_dimension(
+    system,
+    states,
+    scenario_name: str,
+    output_dir: str | None = None,
+    frame_duration_ms: int = 600,
+    template_file: str = "docs/model.drawio",
+) -> dict[str, Path]:
+    """Export three GIF files (Confidentiality / Integrity / Availability).
+
+    Each frame is the draw.io template recolored with cumulative propagation
+    risks up to that simulation step, annotated with a step/stage banner,
+    converted to PNG via the draw.io CLI, and assembled into an animated GIF.
+    Frame 0 shows the clean baseline (no risks yet).
+
+    Draw.io renders are cached by risk fingerprint to avoid redundant CLI
+    calls when consecutive steps introduce no new risks.
+
+    Requires: draw.io CLI in PATH, and Pillow (``pip install pillow``).
+    Returns a dict mapping dimension name → output GIF path.
+    """
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise ImportError(
+            "Pillow is required for GIF export. Install with: pip install pillow"
+        ) from exc
+
+    import tempfile
+
+    template_path = _require_template(template_file)
+    base_dir = Path(output_dir) if output_dir else Path("output")
+    base_dir.mkdir(parents=True, exist_ok=True)
+    stem = _scenario_stem(scenario_name)
+
+    # Build per-frame data: (cumulative_risks, step_label, delta_risks).
+    # Frame 0 shows scenario-assigned defects only (purple, no transitions yet).
+    # Collect all risks across all steps first so we can filter to assigned ones.
+    cumulative: list[str] = []
+    seen: set[str] = set()
+    step_frames: list[tuple[list[str], str, list[str]]] = []
+    for state in states:
+        delta = [r for r in (state.risks or []) if r not in seen]
+        for r in delta:
+            seen.add(r)
+            cumulative.append(r)
+        action_id = parse_fired_action_name(state.action) or "—"
+        label = f"Step {state.step_index}  |  {state.stage}  |  {action_id}"
+        step_frames.append((list(cumulative), label, delta))
+
+    # Assigned-origin sets from the system (for correct purple/blue coloring).
+    assigned_actions     = getattr(system, "assigned_actions",     None) or set()
+    assigned_object_arcs = getattr(system, "assigned_object_arcs", None) or set()
+    assigned_subjects    = getattr(system, "assigned_subjects",    None) or set()
+
+    # Frame 0: show scenario-assigned defects from the start (purple coloring),
+    # even before any transitions fire.
+    all_final_risks = step_frames[-1][0] if step_frames else []
+    assigned_initial: list[str] = []
+    for risk in all_final_risks:
+        action_name = parse_risk_action_name(risk)
+        if action_name and action_name in assigned_actions:
+            assigned_initial.append(risk)
+        else:
+            # Also include risks whose object arc was directly assigned.
+            parsed_edge = parse_risk_edge(risk)
+            if parsed_edge and f"{parsed_edge[0]}/{parsed_edge[1]}" in assigned_object_arcs:
+                assigned_initial.append(risk)
+
+    n_assigned = len(assigned_initial)
+    if n_assigned:
+        init_label = (
+            f"Step 0  |  Initial state  |  {n_assigned} assigned defect(s) shown"
+        )
+    else:
+        init_label = "Step 0  |  Initial state  |  (no scenario-assigned defects)"
+
+    frame_data: list[tuple[list[str], str, list[str]]] = [
+        (assigned_initial, init_label, [])
+    ]
+    frame_data.extend(step_frames)
+
+    output_paths: dict[str, Path] = {}
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp = Path(tmp_dir)
+
+        # Cache: (dimension, risk_tuple) → cached PNG Path.
+        # Avoids duplicate draw.io CLI calls when consecutive steps share
+        # the same cumulative risk set.
+        _png_cache: dict[tuple, Path] = {}
+
+        for dimension in SECURITY_DIMENSIONS:
+            frames_pil: list[Image.Image] = []
+
+            # Pre-compute max bullet lines across all frames so every frame
+            # gets the same banner height (GIF frames must be identical size).
+            max_bullets = max(
+                len(filter_risks_by_dimension(
+                    risks if i == 0 else delta, dimension
+                ))
+                for i, (risks, _, delta) in enumerate(frame_data)
+            )
+
+            for risk_list, label, delta in frame_data:
+                dim_risks = filter_risks_by_dimension(risk_list, dimension)
+                cache_key = (dimension, tuple(dim_risks))
+
+                if cache_key not in _png_cache:
+                    idx = len(_png_cache)
+                    drawio_path = tmp / f"c{idx}_{dimension.lower()}.drawio"
+                    png_path    = tmp / f"c{idx}_{dimension.lower()}.png"
+                    _render_template_propagation_drawio(
+                        risk_strings=dim_risks,
+                        template_path=template_path,
+                        output_path=drawio_path,
+                        assigned_actions=assigned_actions,
+                        assigned_object_arcs=assigned_object_arcs,
+                        assigned_subjects=assigned_subjects,
+                    )
+                    _run_drawio_png_export(drawio_path, png_path)
+                    _png_cache[cache_key] = png_path
+
+                src_png = _png_cache[cache_key]
+                if not src_png.exists():
+                    continue
+
+                # Filter delta/assigned to only risks belonging to this dimension.
+                dim_delta = filter_risks_by_dimension(delta, dimension)
+
+                # Frame 0 has no delta; show its assigned_initial as bullets.
+                is_frame0 = (risk_list is frame_data[0][0] and label == frame_data[0][1])
+                if is_frame0:
+                    banner_evts = filter_risks_by_dimension(risk_list, dimension)
+                    is_assigned = True
+                else:
+                    banner_evts = dim_delta
+                    is_assigned = False
+
+                frame_img = Image.open(src_png).copy()
+                if is_frame0 and banner_evts:
+                    frame_img = _gif_frame0_overlay(frame_img, banner_evts, dimension)
+                frames_pil.append(
+                    _gif_frame_banner(
+                        frame_img, dimension, label, dim_delta,
+                        banner_events=banner_evts,
+                        events_are_assigned=is_assigned,
+                        fixed_lines=max_bullets,
+                    )
+                )
+
+            if not frames_pil:
+                continue
+
+            out_path = base_dir / f"{stem}_{dimension.lower()[:4]}.gif"
+            frames_pil[0].save(
+                out_path,
+                save_all=True,
+                append_images=frames_pil[1:],
+                duration=frame_duration_ms,
+                loop=0,
+                optimize=False,
+            )
+            output_paths[dimension] = out_path
+
+    return output_paths

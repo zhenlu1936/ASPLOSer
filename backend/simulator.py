@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-"""Model 2.0 simulation engine and compatibility execution entrypoints."""
+"""Model 2.0 Colored Petri Net simulation engine."""
 
 from dataclasses import dataclass
 from typing import Dict, List
 
+from .analysis import evaluate_risks_for_marking_delta
 from .execution import ExecutionState
 from .model import (
     Confidentiality,
@@ -18,52 +19,31 @@ from .model import (
     level_to_enum_member,
     stage_sort_key,
 )
+from .propagation import SIMULATION_STAGES
 from .security_aggregation import min_level
 
 
 @dataclass(frozen=True)
 class TokenColor:
-    confidentiality: Confidentiality | None
-    credibility: Credibility | None
     correctness: Correctness
     continuity: Continuity
-
-
-def _build_token_color(
-    correctness: Correctness,
-    continuity: Continuity,
-    confidentiality: Confidentiality | None = None,
-    credibility: Credibility | None = None,
-) -> TokenColor:
-    return TokenColor(
-        confidentiality=confidentiality,
-        credibility=credibility,
-        correctness=correctness,
-        continuity=continuity,
-    )
+    confidentiality: Confidentiality | None = None
+    credibility: Credibility | None = None
 
 
 def _node_token_color(node) -> TokenColor:
     if node.is_subject:
         s = node.as_subject()
-        return _build_token_color(
-            credibility=s.credibility,
-            correctness=s.correctness,
-            continuity=s.continuity,
-        )
+        return TokenColor(s.correctness, s.continuity, credibility=s.credibility)
     o = node.as_object()
-    return _build_token_color(
-        confidentiality=o.confidentiality,
-        correctness=o.correctness,
-        continuity=o.continuity,
-    )
+    return TokenColor(o.correctness, o.continuity, o.confidentiality)
 
 
 def _edge_token_color(edge: Edge) -> TokenColor:
-    return _build_token_color(
-        confidentiality=edge.attributes.confidentiality,
-        correctness=edge.attributes.correctness,
-        continuity=edge.attributes.continuity,
+    return TokenColor(
+        edge.attributes.correctness,
+        edge.attributes.continuity,
+        edge.attributes.confidentiality,
     )
 
 
@@ -75,37 +55,47 @@ def _color_brief(color: TokenColor) -> str:
     )
 
 
+def _output_corr_cont(
+    colors: list[TokenColor],
+    edge: Edge,
+    designated_corr: Correctness,
+) -> tuple[Correctness, Continuity]:
+    """Compute output correctness and continuity from a list of input token colors."""
+    out_corr = (
+        Correctness.CORRECT
+        if designated_corr == Correctness.CORRECT
+        and edge.attributes.correctness == Correctness.CORRECT
+        else level_to_enum_member(Correctness, min_level([c.correctness.level().value for c in colors]))
+    )
+    out_cont = level_to_enum_member(
+        Continuity, min_level([c.continuity.level().value for c in colors])
+    )
+    return out_corr, out_cont
+
+
 def _fire_act_transition(graph, edge: Edge, marking: Dict[str, TokenColor], acted_on_by_map: Dict[str, List[Edge]]) -> tuple[str, TokenColor]:
     actor = edge.source
     output = edge.target
     op_name = edge.action
 
-    input_nodes: List[str] = []
-    for input_edge in acted_on_by_map.get(op_name, []):
-        if input_edge.target == actor:
-            input_nodes.append(input_edge.source)
+    input_nodes = [e.source for e in acted_on_by_map.get(op_name, []) if e.target == actor]
 
-    actor_color = marking.get(actor, _node_token_color(graph.nodes[actor]))
+    # Designated attributes come from graph.nodes (post-scenario, pre-simulation).
+    # Current-marking attributes may differ after module degradation propagates.
+    actor_designated = _node_token_color(graph.nodes[actor])
+    actor_color = marking.get(actor, actor_designated)
     edge_color = _edge_token_color(edge)
     input_colors = [marking.get(name, _node_token_color(graph.nodes[name])) for name in input_nodes]
 
     output_node = graph.nodes[output]
 
-    corr_levels = [actor_color.correctness.level().value, edge_color.correctness.level().value]
-    corr_levels.extend(token.correctness.level().value for token in input_colors)
-    out_corr = level_to_enum_member(Correctness, min_level(corr_levels))
-
-    cont_levels = [actor_color.continuity.level().value, edge_color.continuity.level().value]
-    cont_levels.extend(token.continuity.level().value for token in input_colors)
-    out_cont = level_to_enum_member(Continuity, min_level(cont_levels))
+    out_corr, out_cont = _output_corr_cont(
+        [actor_color, edge_color, *input_colors], edge, actor_designated.correctness
+    )
 
     if output_node.is_subject:
         designated = _node_token_color(output_node)
-        out_color = _build_token_color(
-            credibility=designated.credibility,
-            correctness=out_corr,
-            continuity=out_cont,
-        )
+        out_color = TokenColor(out_corr, out_cont, credibility=designated.credibility)
     else:
         conf_levels: List[int] = [edge_color.confidentiality.level().value]
         if actor_color.credibility is not None:
@@ -115,12 +105,16 @@ def _fire_act_transition(graph, edge: Edge, marking: Dict[str, TokenColor], acte
             for token in input_colors
             if token.confidentiality is not None
         )
-        out_conf = level_to_enum_member(Confidentiality, min_level(conf_levels))
-        out_color = _build_token_color(
-            confidentiality=out_conf,
-            correctness=out_corr,
-            continuity=out_cont,
-        )
+        # Downstream receiver filter: a TRUSTED actor on a CONFIDENTIAL arc
+        # absorbs upstream confidentiality degradation and resets output.
+        if (
+            actor_designated.credibility == Credibility.TRUSTED
+            and edge.attributes.confidentiality == Confidentiality.CONFIDENTIAL
+        ):
+            out_conf = Confidentiality.CONFIDENTIAL
+        else:
+            out_conf = level_to_enum_member(Confidentiality, min_level(conf_levels))
+        out_color = TokenColor(out_corr, out_cont, out_conf)
 
     marking[output] = out_color
 
@@ -134,30 +128,23 @@ def _fire_act_transition(graph, edge: Edge, marking: Dict[str, TokenColor], acte
 
 
 def _fire_respond_transition(graph, edge: Edge, marking: Dict[str, TokenColor]) -> tuple[str, TokenColor]:
-    source_color = marking.get(edge.source, _node_token_color(graph.nodes[edge.source]))
+    source_node = graph.nodes[edge.source]
+    source_designated = _node_token_color(source_node)
+    source_color = marking.get(edge.source, source_designated)
     target_node = graph.nodes[edge.target]
     target_color = marking.get(edge.target, _node_token_color(target_node))
     edge_color = _edge_token_color(edge)
 
-    corr_levels = [source_color.correctness.level().value, edge_color.correctness.level().value, target_color.correctness.level().value]
-    cont_levels = [source_color.continuity.level().value, edge_color.continuity.level().value, target_color.continuity.level().value]
-    out_corr = level_to_enum_member(Correctness, min_level(corr_levels))
-    out_cont = level_to_enum_member(Continuity, min_level(cont_levels))
+    out_corr, out_cont = _output_corr_cont(
+        [source_color, edge_color, target_color], edge, source_designated.correctness
+    )
 
     if target_node.is_subject:
         designated = _node_token_color(target_node)
-        out_color = _build_token_color(
-            credibility=designated.credibility,
-            correctness=out_corr,
-            continuity=out_cont,
-        )
+        out_color = TokenColor(out_corr, out_cont, credibility=designated.credibility)
     else:
         designated = _node_token_color(target_node)
-        out_color = _build_token_color(
-            confidentiality=designated.confidentiality,
-            correctness=out_corr,
-            continuity=out_cont,
-        )
+        out_color = TokenColor(out_corr, out_cont, designated.confidentiality)
 
     marking[edge.target] = out_color
     action = (
@@ -172,21 +159,20 @@ def run_cpn_cycles(
     development_cycles: int = 1,
     feedback: bool = True,
     base_violation_strs: list[str] | None = None,
-    base_risk_strs: list[str] | None = None,
 ) -> List[ExecutionState]:
     """Run Model 2.0 execution using Colored Petri Net transition firing.
 
-    The API name is kept for backward compatibility with existing CLI integrations.
+    Each returned ExecutionState carries:
+    - ``risks``: delta risks introduced by THAT transition only (marking-based).
+    - ``marking_snapshot``: shallow copy of marking after that transition fires.
+
+    Risks are computed per-step from the CPN marking. Use the ``risks`` fields
+    on the returned states or aggregate them in the caller for visualization.
     """
     graph = system.graph
 
     # Group actions by stage, then resolve the corresponding object-flow edges.
-    stage_actions: Dict[str, List[str]] = {
-        "Development": [],
-        "Deployment": [],
-        "Operation": [],
-        "Feedback": [],
-    }
+    stage_actions: Dict[str, List[str]] = {stage: [] for stage in SIMULATION_STAGES}
 
     for action in graph.actions.values():
         if action.stage in stage_actions:
@@ -195,28 +181,20 @@ def run_cpn_cycles(
     for action_names in stage_actions.values():
         action_names.sort(key=stage_sort_key)
 
-    stages: Dict[str, List] = {
-        "Development": [],
-        "Deployment": [],
-        "Operation": [],
-        "Feedback": [],
-    }
-
     edges_by_action: Dict[str, List] = {}
     for edge in graph.edges:
         edges_by_action.setdefault(edge.action, []).append(edge)
 
-    for stage_name, action_names in stage_actions.items():
-        for action_name in action_names:
-            stages[stage_name].extend(edges_by_action.get(action_name, []))
+    stages: Dict[str, List] = {
+        stage_name: [e for name in action_names for e in edges_by_action.get(name, [])]
+        for stage_name, action_names in stage_actions.items()
+    }
 
     # Build a mapping: action_name -> object->subject edges (potential action inputs)
     acted_on_by_map: Dict[str, List] = {}
     for edge in graph.edges:
         if is_object_to_subject_edge(edge, graph):
-            if edge.action not in acted_on_by_map:
-                acted_on_by_map[edge.action] = []
-            acted_on_by_map[edge.action].append(edge)
+            acted_on_by_map.setdefault(edge.action, []).append(edge)
 
     all_states: List[ExecutionState] = []
     marking: Dict[str, TokenColor] = {
@@ -225,73 +203,72 @@ def run_cpn_cycles(
     # Human-readable execution traces are 1-based.
     step_index = 1
 
-    # Simulation reuses precomputed analysis strings to keep this module decoupled.
     if base_violation_strs is None:
         base_violation_strs = []
-    if base_risk_strs is None:
-        base_risk_strs = []
 
-    def _create_execution_state(cycle_index: int, stage_name: str, action: str) -> ExecutionState:
-        """Create an execution state using cached analysis results."""
-        return ExecutionState(
+    def _emit_state(
+        cycle_index: int,
+        stage_name: str,
+        action_text: str,
+        target_names: list[str],
+        action_name: str,
+    ) -> None:
+        nonlocal step_index
+        delta_risks = evaluate_risks_for_marking_delta(
+            graph, marking, target_names, action_name
+        )
+        all_states.append(ExecutionState(
             step_index=step_index,
             cycle_index=cycle_index,
             stage=stage_name,
-            action=action,
+            action=action_text,
             violations=base_violation_strs,
-            risks=base_risk_strs,
-        )
+            risks=delta_risks,
+            marking_snapshot=dict(marking),  # shallow copy — TokenColor is frozen
+        ))
+        step_index += 1
 
     def _process_stage(cycle_index: int, stage_name: str, edges: List) -> None:
         """Fire stage transitions and emit colored-token state snapshots."""
-        nonlocal step_index
-        processed_names: set = set()
+        grouped: dict[str, list] = {}
+        for e in edges:
+            grouped.setdefault(e.action, []).append(e)
 
-        for edge in edges:
-            if edge.action in processed_names:
-                continue
-            processed_names.add(edge.action)
-
-            action_edges = [item for item in edges if item.action == edge.action]
-            input_edges = [item for item in action_edges if is_object_to_subject_edge(item, graph)]
-            actor_subjects = {item.target for item in input_edges}
+        for action_name, action_edges in grouped.items():
+            input_edges = [e for e in action_edges if is_object_to_subject_edge(e, graph)]
+            actor_subjects = {e.target for e in input_edges}
             if not actor_subjects:
-                actor_subjects = {item.source for item in action_edges if graph.nodes[item.source].is_subject}
+                actor_subjects = {e.source for e in action_edges if graph.nodes[e.source].is_subject}
 
             output_edges = [
-                item
-                for item in action_edges
-                if is_subject_to_object_edge(item, graph) and item.source in actor_subjects
+                e for e in action_edges
+                if is_subject_to_object_edge(e, graph) and e.source in actor_subjects
             ]
             if not output_edges:
                 output_edges = [
-                    item
-                    for item in action_edges
-                    if graph.nodes[item.source].is_subject and graph.nodes[item.target].is_subject and item.source in actor_subjects
+                    e for e in action_edges
+                    if graph.nodes[e.source].is_subject and graph.nodes[e.target].is_subject and e.source in actor_subjects
                 ]
+
+            output_set = {id(e) for e in output_edges}
+            input_set = {id(e) for e in input_edges}
+            respond_edges = [
+                e for e in action_edges
+                if id(e) not in output_set and id(e) not in input_set and e.target not in actor_subjects
+            ]
 
             for output_edge in output_edges:
                 action_text, _ = _fire_act_transition(graph, output_edge, marking, acted_on_by_map)
-                all_states.append(_create_execution_state(cycle_index, stage_name, action_text))
-                step_index += 1
+                _emit_state(cycle_index, stage_name, action_text, [output_edge.target], output_edge.action)
 
-            respond_edges = [
-                item
-                for item in action_edges
-                if item not in output_edges and item not in input_edges and item.target not in actor_subjects
-            ]
             for respond_edge in respond_edges:
                 action_text, _ = _fire_respond_transition(graph, respond_edge, marking)
-                all_states.append(_create_execution_state(cycle_index, stage_name, action_text))
-                step_index += 1
+                _emit_state(cycle_index, stage_name, action_text, [respond_edge.target], respond_edge.action)
 
     for cycle in range(1, development_cycles + 1):
-        _process_stage(cycle, "Development", stages["Development"])
-        _process_stage(cycle, "Deployment", stages["Deployment"])
-        _process_stage(cycle, "Operation", stages["Operation"])
-        if feedback:
-            _process_stage(cycle, "Feedback", stages["Feedback"])
+        for stage_name in SIMULATION_STAGES:
+            if stage_name == "Feedback" and not feedback:
+                continue
+            _process_stage(cycle, stage_name, stages[stage_name])
 
     return all_states
-
-

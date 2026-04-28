@@ -50,6 +50,7 @@ Load and follow the `agent-customization` skill when creating, updating, reviewi
 - diagram draw.io: `output/<scenario>_pic.drawio`
 - diagram png: `output/<scenario>_pic.png`
 - model png: `output/model.png`
+- GIF animations: `output/<scenario>_conf.gif`, `output/<scenario>_inte.gif`, `output/<scenario>_avai.gif`
 
 ## Typical Validation Commands
 

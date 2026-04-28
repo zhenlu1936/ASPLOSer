@@ -22,7 +22,7 @@ Overrides and inferred highlights:
 - PostprocessingModule credibility: Trusted
 - PreprocessingModule credibility: Trusted
 - Users credibility: Trusted
-- D2.Delopy continuity: **MixedContinuity**
+- D2.Deploy continuity: **MixedContinuity**
 - O1.Input continuity: **MixedContinuity**
 - O4.Postprocess continuity: **MixedContinuity**
 

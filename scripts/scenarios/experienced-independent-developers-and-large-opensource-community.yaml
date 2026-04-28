@@ -20,7 +20,7 @@ subject_overrides:
   - name: Maintainers
     attributes:
       credibility: Trusted
-  - name: OutsideEnv
+  - name: ExternalEnv
     attributes:
       credibility: MixedCredibility
       correctness: Correct
@@ -41,10 +41,15 @@ action_overrides:
       confidentiality: NonConfidential
       correctness: Correct
       continuity: Continuous
-  - name: D2.Delopy
+  - name: D2.Deploy
     attributes:
       continuity: MixedContinuity
-  - name: O4.Postprocess
+  - name: O5.PostprocessEnv
+    attributes:
+      confidentiality: NonConfidential
+      correctness: Correct
+      continuity: Continuous
+  - name: O6.PostprocessUser
     attributes:
       confidentiality: NonConfidential
       correctness: Correct

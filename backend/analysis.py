@@ -17,6 +17,7 @@ from .model import (
     System,
     are_opposite_node_types,
 )
+from .propagation import ANALYSIS_STAGES
 from .security_aggregation import grade_from_levels
 
 
@@ -109,49 +110,51 @@ def _extract_subject_object(source, target):
     return None, None
 
 
-def _build_confidentiality_risk(edge, severity: str) -> PropagationRisk:
-    severity_label = "High" if severity == "high" else "Medium"
-    if severity == "high":
-        return PropagationRisk(
-            dimension="Confidentiality",
-            severity=severity_label,
-            detail=f"Potential exposure on edge {edge.action}/{edge.name}: {edge.source} -> {edge.target}",
-        )
+_RISK_DETAIL_TEMPLATES = {
+    "Confidentiality": {
+        "high": "Potential exposure on edge {action}/{name}: {source} -> {target}",
+        "medium": "Medium risk from mixed confidentiality on edge {action}/{name}",
+    },
+    "Integrity": {
+        "high": "Potential integrity compromise on edge {action}/{name}",
+        "medium": "Medium risk from mixed correctness on edge {action}/{name}",
+    },
+    "Availability": {
+        "high": "Operation blocked by discontinuous edge {action}/{name}",
+        "medium": "Medium risk from mixed continuity on edge {action}/{name}",
+    },
+}
+
+
+def _severity_label(severity: str) -> str:
+    return "High" if severity == "high" else "Medium"
+
+
+def _build_edge_risk(edge, dimension: str, severity: str) -> PropagationRisk:
+    template = _RISK_DETAIL_TEMPLATES[dimension][severity]
     return PropagationRisk(
-        dimension="Confidentiality",
-        severity=severity_label,
-        detail=f"Medium risk from mixed confidentiality on edge {edge.action}/{edge.name}",
+        dimension=dimension,
+        severity=_severity_label(severity),
+        detail=template.format(
+            action=edge.action,
+            name=edge.name,
+            source=edge.source,
+            target=edge.target,
+        ),
     )
 
 
-def _build_integrity_risk(edge, severity: str) -> PropagationRisk:
-    severity_label = "High" if severity == "high" else "Medium"
-    if severity == "high":
-        return PropagationRisk(
-            dimension="Integrity",
-            severity=severity_label,
-            detail=f"Potential integrity compromise on edge {edge.action}/{edge.name}",
-        )
-    return PropagationRisk(
-        dimension="Integrity",
-        severity=severity_label,
-        detail=f"Medium risk from mixed correctness on edge {edge.action}/{edge.name}",
-    )
-
-
-def _build_availability_risk(edge, severity: str) -> PropagationRisk:
-    severity_label = "High" if severity == "high" else "Medium"
-    if severity == "high":
-        return PropagationRisk(
-            dimension="Availability",
-            severity=severity_label,
-            detail=f"Operation blocked by discontinuous edge {edge.action}/{edge.name}",
-        )
-    return PropagationRisk(
-        dimension="Availability",
-        severity=severity_label,
-        detail=f"Medium risk from mixed continuity on edge {edge.action}/{edge.name}",
-    )
+def _append_risk_by_level(
+    risks: list[PropagationRisk],
+    edge,
+    dimension: str,
+    is_high: bool,
+    is_mixed: bool,
+) -> None:
+    if is_high:
+        risks.append(_build_edge_risk(edge, dimension, "high"))
+    elif is_mixed:
+        risks.append(_build_edge_risk(edge, dimension, "medium"))
 
 
 def _is_high_confidentiality_risk(s_attr, o_attr, edge) -> bool:
@@ -287,25 +290,32 @@ def evaluate_propagation_risks(system: System) -> List[PropagationRisk]:
         if subject is not None:
             s_attr = subject.as_subject()
             o_attr = obj.as_object()
-            if _is_high_confidentiality_risk(s_attr, o_attr, edge):
-                risks.append(_build_confidentiality_risk(edge, "high"))
-            elif _is_mixed_confidentiality_risk(s_attr, o_attr, edge):
-                risks.append(_build_confidentiality_risk(edge, "medium"))
-
-            if _is_high_integrity_risk(s_attr, o_attr, edge):
-                risks.append(_build_integrity_risk(edge, "high"))
-            elif _is_mixed_integrity_risk(s_attr, o_attr, edge):
-                risks.append(_build_integrity_risk(edge, "medium"))
-
-            if _is_high_availability_risk(edge):
-                risks.append(_build_availability_risk(edge, "high"))
-            elif _is_mixed_availability_risk(s_attr, o_attr, edge):
-                risks.append(_build_availability_risk(edge, "medium"))
+            _append_risk_by_level(
+                risks,
+                edge,
+                "Confidentiality",
+                _is_high_confidentiality_risk(s_attr, o_attr, edge),
+                _is_mixed_confidentiality_risk(s_attr, o_attr, edge),
+            )
+            _append_risk_by_level(
+                risks,
+                edge,
+                "Integrity",
+                _is_high_integrity_risk(s_attr, o_attr, edge),
+                _is_mixed_integrity_risk(s_attr, o_attr, edge),
+            )
+            _append_risk_by_level(
+                risks,
+                edge,
+                "Availability",
+                _is_high_availability_risk(edge),
+                _is_mixed_availability_risk(s_attr, o_attr, edge),
+            )
             continue
 
         # Non subject-object edges can still carry hard availability failures.
         if _is_high_availability_risk(edge):
-            risks.append(_build_availability_risk(edge, "high"))
+            risks.append(_build_edge_risk(edge, "Availability", "high"))
 
     return risks
 
@@ -320,17 +330,74 @@ def build_analysis_snapshot(system: System) -> tuple[list[str], list[str]]:
     )
 
 
-def _infer_severity_from_detail(detail: str) -> str:
-    lowered = detail.lower()
-    if "high risk" in lowered or "potential" in lowered or "blocked" in lowered:
-        return "High"
-    if "medium risk" in lowered or "mixed" in lowered:
-        return "Medium"
-    return "Unknown"
+def evaluate_risks_for_marking_delta(
+    graph,
+    marking: dict,
+    fired_target_names: list[str],
+    action_name: str,
+) -> list[str]:
+    """Compute risks introduced at THIS step by comparing updated marking to baseline.
+
+    ``fired_target_names`` are the node names whose marking was just written.
+    ``action_name`` is the action that fired (used for risk detail strings).
+    Only nodes whose current marking is BELOW their designated baseline generate
+    a risk entry.  Returns an empty list when all targets are at baseline or
+    above (no degradation introduced by this step).
+    """
+    risks: list[str] = []
+    for name in fired_target_names:
+        node = graph.nodes.get(name)
+        token = marking.get(name)
+        if node is None or token is None:
+            continue
+
+        if node.is_subject:
+            baseline = node.as_subject()
+            # Integrity (correctness)
+            if hasattr(token, "correctness") and token.correctness.level().value < baseline.correctness.level().value:
+                risks.append(
+                    f"[Integrity][High] Integrity degraded at subject {name} "
+                    f"after {action_name} "
+                    f"({token.correctness.value} < {baseline.correctness.value})"
+                )
+            # Availability (continuity)
+            if hasattr(token, "continuity") and token.continuity.level().value < baseline.continuity.level().value:
+                risks.append(
+                    f"[Availability][High] Availability degraded at subject {name} "
+                    f"after {action_name} "
+                    f"({token.continuity.value} < {baseline.continuity.value})"
+                )
+        else:
+            baseline = node.as_object()
+            # Confidentiality
+            if (
+                hasattr(token, "confidentiality")
+                and token.confidentiality is not None
+                and token.confidentiality.level().value < baseline.confidentiality.level().value
+            ):
+                risks.append(
+                    f"[Confidentiality][High] Confidentiality compromised on edge "
+                    f"{action_name}/{name} "
+                    f"({token.confidentiality.value} < {baseline.confidentiality.value})"
+                )
+            # Integrity (correctness)
+            if hasattr(token, "correctness") and token.correctness.level().value < baseline.correctness.level().value:
+                risks.append(
+                    f"[Integrity][High] Integrity compromised on edge "
+                    f"{action_name}/{name} "
+                    f"({token.correctness.value} < {baseline.correctness.value})"
+                )
+            # Availability (continuity)
+            if hasattr(token, "continuity") and token.continuity.level().value < baseline.continuity.level().value:
+                risks.append(
+                    f"[Availability][High] Availability compromised on edge "
+                    f"{action_name}/{name} "
+                    f"({token.continuity.value} < {baseline.continuity.value})"
+                )
+    return risks
 
 
 def _parse_risk_string(risk: str) -> tuple[str, str, str]:
-    # Preferred format is "[Dimension][Severity] detail".
     if risk.startswith("[") and "]" in risk:
         close_dim = risk.find("]")
         dimension = risk[1:close_dim].strip()
@@ -341,11 +408,6 @@ def _parse_risk_string(risk: str) -> tuple[str, str, str]:
             detail = rest[close_sev + 1 :].strip()
             if dimension and severity and detail:
                 return dimension, severity, detail
-
-        # Backward-compatible format: "[Dimension] detail"
-        detail = rest
-        if dimension and detail:
-            return dimension, _infer_severity_from_detail(detail), detail
 
     return "Unknown", "Unknown", risk
 
@@ -451,8 +513,7 @@ def _write_propagation_log(
 
         _write_section_header(f, "RISKS BY EXECUTION STAGE")
 
-        stage_order = ["Development", "Deployment", "Operation"]
-        for stage in stage_order:
+        for stage in ANALYSIS_STAGES:
             if stage not in by_stage:
                 continue
             f.write(f"[{stage}]\n")
@@ -483,25 +544,19 @@ def _write_propagation_log(
 
 def _write_all_execution_events(log_file, execution_steps: List[ExecutionState]) -> None:
     log_file.write("-" * 80 + "\n")
-    log_file.write("ALL EXECUTION EVENTS\n")
+    log_file.write("ALL EXECUTION EVENTS (per-step delta analysis)\n")
     log_file.write("-" * 80 + "\n\n")
 
     if not execution_steps:
         log_file.write("No execution events recorded.\n")
         return
 
-    same_violations, same_risks = _all_steps_share_same_analysis(execution_steps)
+    same_violations, _ = _all_steps_share_same_analysis(execution_steps)
 
     if same_violations and execution_steps[0].violations:
         _write_section_header(log_file, "SCENARIO-LEVEL STRUCTURAL FINDINGS")
         for violation in execution_steps[0].violations:
             log_file.write(f"- {violation}\n")
-        log_file.write("\n")
-
-    if same_risks and execution_steps[0].risks:
-        _write_section_header(log_file, "SCENARIO-LEVEL PROPAGATION RISKS")
-        for risk in execution_steps[0].risks:
-            log_file.write(f"- {risk}\n")
         log_file.write("\n")
 
     for step in execution_steps:
@@ -522,16 +577,14 @@ def _write_all_execution_events(log_file, execution_steps: List[ExecutionState])
         else:
             log_file.write("  Violations: none\n")
 
+        # Per-step delta risks (only what THIS step introduced).
         risks = step.risks
         if risks:
-            if same_risks:
-                log_file.write("  Risks: see SCENARIO-LEVEL PROPAGATION RISKS\n")
-            else:
-                log_file.write("  Risks:\n")
-                for risk in risks:
-                    log_file.write(f"    - {risk}\n")
+            log_file.write("  Delta risks (this step):\n")
+            for risk in risks:
+                log_file.write(f"    + {risk}\n")
         else:
-            log_file.write("  Risks: none\n")
+            log_file.write("  Delta risks: none\n")
 
         log_file.write("\n")
 

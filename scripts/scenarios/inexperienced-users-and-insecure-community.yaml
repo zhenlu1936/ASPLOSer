@@ -17,7 +17,7 @@ subject_overrides:
   - name: PostprocessingModule
     attributes:
       credibility: MixedCredibility
-  - name: Users
+  - name: User
     attributes:
       credibility: MixedCredibility
       correctness: MixedCorrectness
@@ -26,7 +26,7 @@ subject_overrides:
       credibility: MixedCredibility
       correctness: MixedCorrectness
       continuity: MixedContinuity
-  - name: OutsideEnv
+  - name: ExternalEnv
     attributes:
       credibility: Untrusted
       correctness: MixedCorrectness
@@ -48,11 +48,16 @@ action_overrides:
       confidentiality: NonConfidential
       correctness: MixedCorrectness
       continuity: Discontinuous
-  - name: D2.Delopy
+  - name: D2.Deploy
     attributes:
       correctness: MixedCorrectness
       continuity: Discontinuous
-  - name: O4.Postprocess
+  - name: O5.PostprocessEnv
+    attributes:
+      confidentiality: NonConfidential
+      correctness: MixedCorrectness
+      continuity: MixedContinuity
+  - name: O6.PostprocessUser
     attributes:
       confidentiality: NonConfidential
       correctness: MixedCorrectness

@@ -22,7 +22,7 @@ Overrides and inferred highlights:
 - OutsideEnv continuity: **MixedContinuity**
 - A3.Download confidentiality: **NonConfidential**
 - A3.Download correctness: Correct
-- D2.Delopy continuity: **MixedContinuity**
+- D2.Deploy continuity: **MixedContinuity**
 - M6.Download confidentiality: **NonConfidential**
 - M6.Download correctness: Correct
 - M6.Download continuity: Continuous

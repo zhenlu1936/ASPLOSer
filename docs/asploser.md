@@ -127,8 +127,8 @@ subjects := {
 - PreprocessingModule,
 - InferenceModule,
 - PostprocessingModule,
-- Users,
-- OutsideEnv
+- User,
+- ExternalEnv
 
 }
 
@@ -136,7 +136,9 @@ subjects := {
 
 M := {
 
-- M0.Initialize,
+- M01.Initialize,
+- M02.Initialize,
+- M03.Initialize,
 - M1.Collection,
 - M2.Process,
 - M3.Download,
@@ -148,7 +150,7 @@ M := {
 
 A := {
 
-- A0.Initialize,
+- A01.Initialize,
 - A1.Program,
 - A2.Upload,
 - A3.Download
@@ -157,7 +159,7 @@ A := {
 
 P := {
 
-- P0.Initialize,
+- P01.Initialize,
 - P1.Upload,
 - P2.Download
 
@@ -165,26 +167,40 @@ P := {
 
 D := {
 
-- D0.Initialize,
-- D1.Delopy,
-- D2.Delopy,
-- D3.Delopy
+- D01.Initialize,
+- D1.Deploy,
+- D2.Deploy,
+- D3.Deploy
 
 }
 
 O := {
 
-- O0.Initialize,
-- O1.Input,
-- O2.Preprocess,
-- O3.Infer,
-- O4.Postprocess
+- O01.Initialize,
+- O02.Initialize,
+- O1.InputUser,
+- O2.InputEnv,
+- O3.Preprocess,
+- O4.Infer,
+- O5.PostprocessEnv,
+- O6.PostprocessUser
 
 }
 
 F := {
 
-- F1.Feedback (instanced multiple times in the picture)
+- MF1.Feedback,
+- MF2.Feedback,
+- MF3.Feedback,
+- AF1.Feedback,
+- AF2.Feedback,
+- PF1.Feedback,
+- PF2.Feedback,
+- DF1.Feedback,
+- OF1.Feedback,
+- OF2.Feedback,
+- OF3.Feedback,
+- OF4.Feedback
 
 }
 
@@ -202,9 +218,9 @@ All arcs below are object arcs (single arc type).
 
 arcs_M := {
 
-- (RawDataP, M0.Initialize, DataWorkers),
-- (ModelSpecP, M0.Initialize, ModelDevelopers),
-- (PretrainedModelDeclarationP, M0.Initialize, ModelHub),
+- (RawDataP, M01.Initialize, DataWorkers),
+- (ModelSpecP, M02.Initialize, ModelDevelopers),
+- (PretrainedModelDeclarationP, M03.Initialize, ModelHub),
 - (RawDataO, DataWorkers, M1.Collection),
 - (UnstructuredDataI, M1.Collection, DataWorkers),
 - (UnstructuredDataO, DataWorkers, M2.Process),
@@ -216,7 +232,13 @@ arcs_M := {
 - (ModelToBeUploadO, ModelDevelopers, M5.Upload),
 - (ModelUploadedI, M5.Upload, ModelHub),
 - (ModelUploadedO, ModelHub, M6.Download),
-- (ModelDownloadedI, M6.Download, Maintainers)
+- (ModelDownloadedI, M6.Download, Maintainers),
+- (Feedback, DataWorkers, MF1.Feedback),
+- (Feedback, MF1.Feedback, DataWorkers),
+- (Feedback, ModelDevelopers, MF2.Feedback),
+- (Feedback, MF2.Feedback, ModelDevelopers),
+- (Feedback, ModelHub, MF3.Feedback),
+- (Feedback, MF3.Feedback, ModelHub)
 
 }
 
@@ -224,13 +246,18 @@ arcs_M := {
 
 arcs_A := {
 
-- (AppSpecP, A0.Initialize, AppDevelopers),
+- (AppSpecP, A01.Initialize, AppDevelopers),
 - (AppSpecO, AppDevelopers, A1.Program),
 - (AppProgrammedI, A1.Program, AppDevelopers),
 - (AppProgrammedO, AppDevelopers, A2.Upload),
 - (AppUploadedI, A2.Upload, AppHub),
 - (AppUploadedO, AppHub, A3.Download),
-- (AppDownloadedI, A3.Download, Maintainers)
+- (AppDownloadedI, A3.Download, Maintainers),
+- (DependencyDeclarationI, A1.Program, DependencyHub),
+- (Feedback, AppDevelopers, AF1.Feedback),
+- (Feedback, AF1.Feedback, AppDevelopers),
+- (Feedback, AppHub, AF2.Feedback),
+- (Feedback, AF2.Feedback, AppHub)
 
 }
 
@@ -238,12 +265,15 @@ arcs_A := {
 
 arcs_P := {
 
-- (DependencyProgrammedP, P0.Initialize, DependencyDevelopers),
+- (DependencyProgrammedP, P01.Initialize, DependencyDevelopers),
 - (DependencyProgrammedO, DependencyDevelopers, P1.Upload),
 - (DependenciesUploadedI, P1.Upload, DependencyHub),
 - (DependenciesUploadedO, DependencyHub, P2.Download),
 - (DependenciesDownloadedI, P2.Download, Maintainers),
-- (DependencyDeclarationI, A1.Program, DependencyHub)
+- (Feedback, DependencyDevelopers, PF1.Feedback),
+- (Feedback, PF1.Feedback, DependencyDevelopers),
+- (Feedback, DependencyHub, PF2.Feedback),
+- (Feedback, PF2.Feedback, DependencyHub)
 
 }
 
@@ -251,13 +281,15 @@ arcs_P := {
 
 arcs_D := {
 
-- (OperatingEnvP, D0.Initialize, Maintainers),
-- (AppAndDepO, Maintainers, D1.Delopy),
-- (ModelAppAndDepO, Maintainers, D2.Delopy),
-- (AppAndDepO, Maintainers, D3.Delopy),
-- (AppAndDepI, D1.Delopy, PreprocessingModule),
-- (ModelAppAndDepI, D2.Delopy, InferenceModule),
-- (AppAndDepI, D3.Delopy, PostprocessingModule)
+- (OperatingEnvP, D01.Initialize, Maintainers),
+- (AppAndDepO, Maintainers, D1.Deploy),
+- (ModelAppAndDepO, Maintainers, D2.Deploy),
+- (AppAndDepO, Maintainers, D3.Deploy),
+- (AppAndDepI, D1.Deploy, PreprocessingModule),
+- (ModelAppAndDepI, D2.Deploy, InferenceModule),
+- (AppAndDepI, D3.Deploy, PostprocessingModule),
+- (Feedback, Maintainers, DF1.Feedback),
+- (Feedback, DF1.Feedback, Maintainers)
 
 }
 
@@ -265,32 +297,33 @@ arcs_D := {
 
 arcs_O := {
 
-- (ProposalP, O0.Initialize, Users),
-- (ProposalMaterializedP, O0.Initialize, OutsideEnv),
-- (InputO, Users, O1.Input),
-- (InputMaterializedO, OutsideEnv, O1.Input),
-- (InputI, O1.Input, PreprocessingModule),
-- (InputTokensO, PreprocessingModule, O2.Preprocess),
-- (InputTokensI, O2.Preprocess, InferenceModule),
-- (OutputTokensO, InferenceModule, O3.Infer),
-- (OutputTokensI, O3.Infer, PostprocessingModule),
-- (OutputO, PostprocessingModule, O4.Postprocess),
-- (OutputI, O4.Postprocess, Users),
-- (OutputMaterializedI, O4.Postprocess, OutsideEnv)
+- (ProposalMaterializedP, O01.Initialize, ExternalEnv),
+- (ProposalP, O02.Initialize, User),
+- (InputUserO, User, O1.InputUser),
+- (InputEnvI, O1.InputUser, ExternalEnv),
+- (InputEnvO, ExternalEnv, O2.InputEnv),
+- (InputI, O2.InputEnv, PreprocessingModule),
+- (InputTokensO, PreprocessingModule, O3.Preprocess),
+- (InputTokensI, O3.Preprocess, InferenceModule),
+- (OutputTokensO, InferenceModule, O4.Infer),
+- (OutputTokensI, O4.Infer, PostprocessingModule),
+- (OutputEnvO, PostprocessingModule, O5.PostprocessEnv),
+- (OutputEnvI, O5.PostprocessEnv, ExternalEnv),
+- (OutputUserO, PostprocessingModule, O6.PostprocessUser),
+- (OutputUserI, O6.PostprocessUser, User),
+- (Feedback, PreprocessingModule, OF1.Feedback),
+- (Feedback, OF1.Feedback, PreprocessingModule),
+- (Feedback, InferenceModule, OF2.Feedback),
+- (Feedback, OF2.Feedback, InferenceModule),
+- (Feedback, PostprocessingModule, OF3.Feedback),
+- (Feedback, OF3.Feedback, PostprocessingModule),
+- (Feedback, User, OF4.Feedback)
 
 }
 
 ### 6.6 F Arcs
 
-arcs_F := {
-
-- (OutputFeedbackO, Users, F1.Feedback),
-- (FeedbackI, F1.Feedback, ModelDevelopers),
-- (FeedbackI, F1.Feedback, AppDevelopers),
-- (FeedbackI, F1.Feedback, DependencyDevelopers),
-- (FeedbackI, F1.Feedback, Maintainers)
-
-}
+arcs_F is empty; all feedback arcs are distributed across arcs_M, arcs_A, arcs_P, arcs_D, and arcs_O above.
 
 Total arc set:
 

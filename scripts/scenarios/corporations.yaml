@@ -20,7 +20,7 @@ subject_overrides:
   - name: PostprocessingModule
     attributes:
       credibility: Trusted
-  - name: Users
+  - name: User
     attributes:
       credibility: Trusted
   - name: Maintainers
@@ -29,19 +29,22 @@ subject_overrides:
   - name: DataWorkers
     attributes:
       credibility: Trusted
-  - name: OutsideEnv
+  - name: ExternalEnv
     attributes:
       credibility: Trusted
       continuity: MixedContinuity
 
 action_overrides:
-  - name: D2.Delopy
+  - name: D2.Deploy
     attributes:
       continuity: MixedContinuity
-  - name: O1.Input
+  - name: O1.InputUser
     attributes:
       continuity: MixedContinuity
-  - name: O4.Postprocess
+  - name: O5.PostprocessEnv
+    attributes:
+      continuity: MixedContinuity
+  - name: O6.PostprocessUser
     attributes:
       continuity: MixedContinuity
 

@@ -6,9 +6,13 @@ import argparse
 from pathlib import Path
 
 from backend import (
+    SECURITY_DIMENSIONS,
+    aggregate_risk_strings,
     build_analysis_snapshot,
     build_default_system,
+    exclude_feedback_risks,
     export_drawio_xml_to_png,
+    export_propagation_gif_per_dimension,
     export_reference_model_png,
     export_template_propagation_drawio_per_dimension,
     export_template_propagation_drawio_per_stage,
@@ -74,7 +78,18 @@ def _build_parser() -> argparse.ArgumentParser:
         const="AUTO",
         type=str,
         default=None,
-        help="Export provided XML model docs/model2.0.drawio to PNG. Optional path overrides default output/model2.0.png",
+        help="Export reference model docs/model.drawio to PNG. Optional path overrides default output/model.png",
+    )
+    parser.add_argument(
+        "--export-gif",
+        nargs="?",
+        const="AUTO",
+        type=str,
+        default=None,
+        help=(
+            "Export per-dimension GIF animations (Conf/Int/Avail), one frame per CPN tick. "
+            "Optional argument sets output directory."
+        ),
     )
     return parser
 
@@ -99,8 +114,57 @@ def _scenario_stem(scenario_name: str, has_custom_scenario: bool) -> str:
     return Path(scenario_name).stem
 
 
-def _exclude_feedback_risks(risk_strings: list[str]) -> list[str]:
-    return [risk for risk in risk_strings if " edge F1.Feedback/" not in risk]
+def _optional_export_path(export_arg: str | None) -> str | None:
+    return None if export_arg in (None, "AUTO") else export_arg
+
+
+def _visualization_assignments(system) -> dict:
+    return {
+        "assigned_actions": system.assigned_actions,
+        "assigned_object_arcs": system.assigned_object_arcs,
+        "assigned_subjects": system.assigned_subjects,
+    }
+
+
+def _print_dimension_exports(title: str, paths: dict) -> None:
+    print(title)
+    for dimension in SECURITY_DIMENSIONS:
+        print(f"  - {dimension}: {paths[dimension]}")
+    print()
+
+
+def _dimension_png_output_path(custom_path: str | None, dimension: str) -> str | None:
+    if custom_path is None:
+        return None
+    custom_png = Path(custom_path)
+    suffix = custom_png.suffix or ".png"
+    return str(custom_png.with_name(f"{custom_png.stem}_{dimension.lower()}{suffix}"))
+
+
+def _maybe_export_gif(
+    system,
+    scenario_name: str,
+    states,
+    export_gif_arg: str | None,
+) -> None:
+    if not export_gif_arg:
+        return
+    output_dir = _optional_export_path(export_gif_arg)
+    try:
+        gif_paths = export_propagation_gif_per_dimension(
+            system=system,
+            states=states,
+            scenario_name=scenario_name,
+            output_dir=output_dir,
+        )
+    except (ImportError, RuntimeError) as exc:
+        print(f"GIF export failed: {exc}")
+        print()
+        return
+    print("Per-dimension GIF animations exported:")
+    for dimension, path in gif_paths.items():
+        print(f"  - {dimension}: {path}")
+    print()
 
 
 def _print_system_summary(system, scenario_name: str) -> None:
@@ -127,35 +191,29 @@ def _maybe_export_drawio(
 ):
     if not export_drawio_arg:
         return None
-    custom_path = None if export_drawio_arg == "AUTO" else export_drawio_arg
+    custom_path = _optional_export_path(export_drawio_arg)
+    assignment_kwargs = _visualization_assignments(system)
     drawio_path = export_template_propagation_drawio(
         scenario_name=scenario_name,
         risk_strings=base_risk_strs,
         output_file=custom_path,
-        assigned_actions=system.assigned_actions,
-        assigned_object_arcs=system.assigned_object_arcs,
-        assigned_subjects=system.assigned_subjects,
+        **assignment_kwargs,
     )
     dimension_paths = export_template_propagation_drawio_per_dimension(
         scenario_name=scenario_name,
         risk_strings=base_risk_strs,
         output_file=custom_path,
-        assigned_actions=system.assigned_actions,
-        assigned_object_arcs=system.assigned_object_arcs,
-        assigned_subjects=system.assigned_subjects,
+        **assignment_kwargs,
     )
     print(f"Holistic model draw.io exported to: {drawio_path}")
-    print("Dimension-specific draw.io files exported:")
-    for dimension in ("Confidentiality", "Integrity", "Availability"):
-        print(f"  - {dimension}: {dimension_paths[dimension]}")
-    print()
+    _print_dimension_exports("Dimension-specific draw.io files exported:", dimension_paths)
     return drawio_path
 
 
 def _maybe_export_model_png(export_model_png_arg: str | None) -> None:
     if not export_model_png_arg:
         return
-    custom_path = None if export_model_png_arg == "AUTO" else export_model_png_arg
+    custom_path = _optional_export_path(export_model_png_arg)
     try:
         png_path = export_reference_model_png(output_file=custom_path)
     except (RuntimeError, FileNotFoundError) as exc:
@@ -181,47 +239,31 @@ def _maybe_export_scenario_png(
         source_drawio = export_template_propagation_drawio(
             scenario_name=scenario_name,
             risk_strings=base_risk_strs,
-            assigned_actions=system.assigned_actions,
-            assigned_object_arcs=system.assigned_object_arcs,
-            assigned_subjects=system.assigned_subjects,
+            **_visualization_assignments(system),
         )
 
     dimension_drawio_paths = export_template_propagation_drawio_per_dimension(
         scenario_name=scenario_name,
         risk_strings=base_risk_strs,
-        assigned_actions=system.assigned_actions,
-        assigned_object_arcs=system.assigned_object_arcs,
-        assigned_subjects=system.assigned_subjects,
+        **_visualization_assignments(system),
     )
 
-    custom_path = None if export_png_arg == "AUTO" else export_png_arg
+    custom_path = _optional_export_path(export_png_arg)
     try:
         png_path = export_drawio_xml_to_png(source_drawio, output_file=custom_path)
         dimension_png_paths = {}
-        for dimension in ("Confidentiality", "Integrity", "Availability"):
+        for dimension in SECURITY_DIMENSIONS:
             dimension_drawio = dimension_drawio_paths[dimension]
-            dimension_output = None
-            if custom_path is not None:
-                custom_png = Path(custom_path)
-                suffix = custom_png.suffix or ".png"
-                dimension_output = str(
-                    custom_png.with_name(
-                        f"{custom_png.stem}_{dimension.lower()}{suffix}"
-                    )
-                )
             dimension_png_paths[dimension] = export_drawio_xml_to_png(
                 dimension_drawio,
-                output_file=dimension_output,
+                output_file=_dimension_png_output_path(custom_path, dimension),
             )
     except (RuntimeError, FileNotFoundError) as exc:
         print(f"PNG export failed: {exc}")
         print()
         return
     print(f"Holistic model PNG exported to: {png_path}")
-    print("Dimension-specific PNG files exported:")
-    for dimension in ("Confidentiality", "Integrity", "Availability"):
-        print(f"  - {dimension}: {dimension_png_paths[dimension]}")
-    print()
+    _print_dimension_exports("Dimension-specific PNG files exported:", dimension_png_paths)
 
 
 def _maybe_export_drawio_per_stage(
@@ -236,7 +278,7 @@ def _maybe_export_drawio_per_stage(
     if not export_drawio_per_stage_arg:
         return
 
-    output_dir = None if export_drawio_per_stage_arg == "AUTO" else export_drawio_per_stage_arg
+    output_dir = _optional_export_path(export_drawio_per_stage_arg)
     exported_paths = export_template_propagation_drawio_per_stage(
         scenario_name=scenario_name,
         risk_strings=base_risk_strs,
@@ -244,9 +286,7 @@ def _maybe_export_drawio_per_stage(
         development_cycles=development_cycles,
         feedback=feedback,
         output_dir=output_dir,
-        assigned_actions=system.assigned_actions,
-        assigned_object_arcs=system.assigned_object_arcs,
-        assigned_subjects=system.assigned_subjects,
+        **_visualization_assignments(system),
     )
 
     if not exported_paths:
@@ -260,7 +300,7 @@ def _maybe_export_drawio_per_stage(
     print()
 
 
-def _print_base_findings(base_violation_strs: list[str], base_risk_strs: list[str]) -> None:
+def _print_base_findings(base_violation_strs: list[str], aggregated_risk_strs: list[str]) -> None:
     if base_violation_strs:
         print("\nScenario-level structural findings:")
         for violation in base_violation_strs:
@@ -268,12 +308,12 @@ def _print_base_findings(base_violation_strs: list[str], base_risk_strs: list[st
     else:
         print("\nScenario-level structural findings: none")
 
-    if base_risk_strs:
-        print("Scenario-level propagation risks:")
-        for risk in base_risk_strs:
+    if aggregated_risk_strs:
+        print("Aggregated propagation risks (all steps):")
+        for risk in aggregated_risk_strs:
             print(f"  - {risk}")
     else:
-        print("Scenario-level propagation risks: none")
+        print("Aggregated propagation risks: none")
 
 
 def _print_state_rows(states) -> None:
@@ -287,7 +327,9 @@ def _print_state_rows(states) -> None:
             print("  No structural violations")
 
         if state.risks:
-            print("  Propagation risks: see scenario-level summary")
+            print("  Delta risks (this step):")
+            for risk in state.risks:
+                print(f"    + {risk}")
         else:
             print("  No propagation risks")
 
@@ -331,13 +373,10 @@ def main() -> None:
         print(f"Error: {e}")
         return
 
-    base_violation_strs, base_risk_strs = build_analysis_snapshot(system)
-    base_risk_strs = _exclude_feedback_risks(base_risk_strs)
+    base_violation_strs, static_risk_strs = build_analysis_snapshot(system)
 
     _print_system_summary(system, scenario_name)
     _maybe_export_model_png(args.export_model_png)
-    drawio_path = _maybe_export_drawio(system, scenario_name, args.export_drawio, base_risk_strs)
-    _maybe_export_scenario_png(system, scenario_name, args.export_png, drawio_path, base_risk_strs)
 
     print("=== Model 2.0 Colored Petri Net Simulation with Analysis ===")
     states = run_cpn_cycles(
@@ -345,20 +384,34 @@ def main() -> None:
         development_cycles=max(1, args.cycles),
         feedback=not args.no_feedback,
         base_violation_strs=base_violation_strs,
-        base_risk_strs=base_risk_strs,
     )
 
-    _print_base_findings(base_violation_strs, base_risk_strs)
+    # Aggregate per-step delta risks from all states for visualization.
+    # These are marking-based and already reflect downstream receiver filtering.
+    aggregated_risk_strs = exclude_feedback_risks(aggregate_risk_strings(states))
+
+    # Prepend initialization-time risks from static analysis so they appear
+    # colored in stage-0 diagrams before the first CPN step fires.
+    # .Initialize actions are never fired in CPN, so their risks must come
+    # from the structural analysis of the initial arc attributes.
+    init_risk_strs = [r for r in static_risk_strs if ".Initialize/" in r]
+    if init_risk_strs:
+        aggregated_risk_strs = init_risk_strs + aggregated_risk_strs
+
+    _print_base_findings(base_violation_strs, aggregated_risk_strs)
     _print_state_rows(states)
+    drawio_path = _maybe_export_drawio(system, scenario_name, args.export_drawio, aggregated_risk_strs)
+    _maybe_export_scenario_png(system, scenario_name, args.export_png, drawio_path, aggregated_risk_strs)
     _maybe_export_drawio_per_stage(
         system=system,
         scenario_name=scenario_name,
         export_drawio_per_stage_arg=args.export_drawio_per_stage,
-        base_risk_strs=base_risk_strs,
+        base_risk_strs=aggregated_risk_strs,
         states=states,
         development_cycles=max(1, args.cycles),
         feedback=not args.no_feedback,
     )
+    _maybe_export_gif(system, scenario_name, states, args.export_gif)
     _emit_propagation_log(states, output_dir, scenario_name, args.scenario is not None)
 
 

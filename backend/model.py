@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Unified Model 2.0 data model: core schema and projection helpers."""
 
+import re as _re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Set, Type
@@ -78,16 +79,6 @@ class Credibility(_LeveledEnum):
             cls.MIXED_CREDIBILITY: Level.MIXED,
             cls.TRUSTED: Level.HIGH,
         }
-
-
-class SubjectNodeType(Enum):
-    AGENT = "Agent"
-    PARTICIPANT = "Participant"
-
-
-class ObjectNodeType(Enum):
-    ASSET = "Asset"
-    SOURCE = "Source"
 
 
 class EdgeType(Enum):
@@ -204,6 +195,9 @@ class System:
     assigned_actions: Set[str] = field(default_factory=set)
     assigned_object_arcs: Set[str] = field(default_factory=set)
     assigned_subjects: Set[str] = field(default_factory=set)
+    # Maps module subject names to their canonical operation action names.
+    # Used for module-action attribute inheritance and GIF annotation.
+    module_action_map: Dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -240,6 +234,8 @@ class ObjectArcPetriNet2:
 
 
 def _classify_stage(action_name: str) -> str:
+    if action_name.endswith(".Feedback"):
+        return "Feedback"
     token = action_name.split(".", 1)[0]
     if token.startswith("M"):
         return "Development"
@@ -257,8 +253,13 @@ def classify_action_stage(action_name: str) -> str:
     return _classify_stage(action_name)
 
 
-def stage_sort_key(action_name: str) -> tuple[int, int]:
-    """Stable stage-aware sort key for action identifiers."""
+def stage_sort_key(action_name: str) -> tuple[int, int, int]:
+    """Stable stage-aware sort key for action identifiers.
+
+    Returns a 3-tuple (stage_order, prefix_order, number) so actions fire in
+    the canonical sequence  M → A → P → D → O → F, with numeric order within
+    each prefix group.
+    """
     stage_order = {
         "Development": 0,
         "Deployment": 1,
@@ -266,11 +267,22 @@ def stage_sort_key(action_name: str) -> tuple[int, int]:
         "Feedback": 4,
         "Other": 5,
     }
+    # Within Deployment: A < P < D; within Feedback: MF < AF < PF < DF < OF.
+    prefix_order = {
+        "M": 0, "A": 0, "P": 1, "D": 2, "O": 0, "F": 0,
+        "MF": 0, "AF": 1, "PF": 2, "DF": 3, "OF": 4,
+    }
     stage = _classify_stage(action_name)
-    token = action_name.split(".", 1)[0]
-    numeric_suffix = token[1:] if len(token) > 1 else ""
-    number = int(numeric_suffix) if numeric_suffix.isdigit() else 999
-    return (stage_order.get(stage, 100), number)
+    token = action_name.split(".", 1)[0].upper()
+    m = _re.match(r"^([A-Za-z]+?)(\d*)$", token)
+    if m:
+        prefix = m.group(1)
+        number = int(m.group(2)) if m.group(2) else 999
+    else:
+        prefix = token[:1] if token else ""
+        number = 999
+    porder = prefix_order.get(prefix, prefix_order.get(prefix[:1] if prefix else "", 99))
+    return (stage_order.get(stage, 100), porder, number)
 
 
 def level_to_enum_member(enum_cls: Type[_LeveledEnum], level_value: int) -> _LeveledEnum:
@@ -362,7 +374,7 @@ def project_system_to_model2(system: System) -> ObjectArcPetriNet2:
                 )
             )
         else:
-            # subject-subject fallbacks are mapped as action outputs to the target subject.
+            # Subject-subject feedback arcs are mapped as action outputs to the target subject.
             subject_endpoint = edge.target if tgt_is_subject else edge.source
             if subject_endpoint in net.subjects:
                 net.object_arcs.append(
